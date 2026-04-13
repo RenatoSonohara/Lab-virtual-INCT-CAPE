@@ -112,6 +112,29 @@
             <button id="runBatchBtn" class="btn btn-sm btn-outline-primary fw-bold">▶ Simular</button>
           </div>
           <small class="text-muted d-block mt-1" style="font-size:0.78rem">Plota todos os pontos de uma vez.</small>
+
+          <hr class="my-3">
+          <h3 class="h6 mb-2">Página de Saturação (Variáveis Manipuladas)</h3>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label text-muted small mb-1" for="satImin">I mínimo (A)</label>
+              <input id="satImin" type="number" step="0.1" value="0" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted small mb-1" for="satImax">I máximo (A)</label>
+              <input id="satImax" type="number" step="0.1" value="500" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted small mb-1" for="satQmin">Q mínimo (W)</label>
+              <input id="satQmin" type="number" step="10" value="-5000" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted small mb-1" for="satQmax">Q máximo (W)</label>
+              <input id="satQmax" type="number" step="10" value="5000" class="form-control form-control-sm">
+            </div>
+          </div>
+          <button id="applySatBtn" class="btn btn-sm btn-outline-secondary mt-2">Aplicar saturações</button>
+          <small class="text-muted d-block mt-1" style="font-size:0.78rem">Estes campos ficam bloqueados durante execução em tempo real.</small>
         </div>
       </div>
 
@@ -282,8 +305,8 @@
           <div class="mb-2">
             <label class="form-label text-muted mb-1">Q — Fluxo de calor de controle (W)</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="Q" type="range" min="0" max="5000" step="10" value="0" class="form-range flex-grow-1">
-              <input id="Q_txt" type="number" min="0" max="5000" step="10" value="0" class="form-control slider-input">
+              <input id="Q" type="range" min="-5000" max="5000" step="10" value="0" class="form-range flex-grow-1">
+              <input id="Q_txt" type="number" min="-5000" max="5000" step="10" value="0" class="form-control slider-input">
             </div>
           </div>
 
@@ -318,14 +341,20 @@
             </div>
           </div>
 
-          <h3 class="h5">PID — Controle de Temperatura via I</h3>
+          <div class="d-flex align-items-center justify-content-between mt-3 mb-2 flex-wrap gap-2">
+            <h3 class="h5 mb-0">PID — Controle de Temperatura via Q</h3>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="loopModeToggle">
+              <label class="form-check-label small text-muted" for="loopModeToggle" id="loopModeLabel">Malha Aberta</label>
+            </div>
+          </div>
 
           <!-- Kp -->
           <div class="mb-2">
             <label class="form-label text-muted mb-1">Kp</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="kp" type="range" min="0" max="10" step="0.001" value="0" class="form-range flex-grow-1">
-              <input id="kp_txt" type="number" min="0" max="10" step="0.001" value="0" class="form-control slider-input">
+              <input id="kp" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+              <input id="kp_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
             </div>
           </div>
 
@@ -333,8 +362,8 @@
           <div class="mb-2">
             <label class="form-label text-muted mb-1">Ki</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="ki" type="range" min="0" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
-              <input id="ki_txt" type="number" min="0" max="2" step="0.0001" value="0" class="form-control slider-input">
+              <input id="ki" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+              <input id="ki_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
             </div>
           </div>
 
@@ -342,8 +371,8 @@
           <div class="mb-2">
             <label class="form-label text-muted mb-1">Kd</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="kd" type="range" min="0" max="5" step="0.001" value="0" class="form-range flex-grow-1">
-              <input id="kd_txt" type="number" min="0" max="5" step="0.001" value="0" class="form-control slider-input">
+              <input id="kd" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+              <input id="kd_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
             </div>
           </div>
 
