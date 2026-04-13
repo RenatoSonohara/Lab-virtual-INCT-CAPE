@@ -85,7 +85,7 @@ function calcComponents(I, T_K) {
 // ────────────────────────────────────────────────────────────
 class EletrolisadorJS {
   constructor(opts) {
-    const { I, Q, Ncells, Tamb_C, refT, consts, pid } = opts;
+    const { I, Q, Ncells, Tamb_C, refT, consts, pid, sat } = opts;
 
     this.DELTA_T  = consts.DELTA_T;
     this.I        = I;
@@ -94,13 +94,19 @@ class EletrolisadorJS {
     this.Tamb_K   = Tamb_C + 273.15;
     this.refT     = refT;
     this.T_stack  = this.Tamb_K;
+    this.sat = {
+      Imin: sat?.Imin ?? 0,
+      Imax: sat?.Imax ?? 500,
+      Qmin: sat?.Qmin ?? -5000,
+      Qmax: sat?.Qmax ?? 5000,
+    };
 
     // PID
     this.Kp = pid.kp;
     this.Ki = pid.ki;
     this.Kd = pid.kd;
     this.acaoIntegral = 0;
-    this._lastT = this.T_stack;
+    this._lastErro = 0;
     this.sinalControle = 0;
   }
 
@@ -111,18 +117,18 @@ class EletrolisadorJS {
   }
 
   controleTemperatura(T) {
-    const uMin = 0, uMax = 500;
-    const erro  = this.refT - T;
-    const dMeas = (T - this._lastT) / this.DELTA_T;
-    this._lastT = T;
+    const uMin = this.sat.Qmin, uMax = this.sat.Qmax;
+    const erro = this.refT - T;
+    const dErro = (erro - this._lastErro) / this.DELTA_T;
+    this._lastErro = erro;
 
-    this.acaoIntegral += this.Ki * erro * this.DELTA_T;
-    this.acaoIntegral  = Math.max(uMin, Math.min(uMax, this.acaoIntegral));
+    this.acaoIntegral += erro * this.DELTA_T;
+    const iTerm = this.Ki * this.acaoIntegral;
 
-    let u = this.Kp * erro + this.acaoIntegral - this.Kd * dMeas;
+    let u = this.Kp * erro + iTerm + this.Kd * dErro;
     u = Math.max(uMin, Math.min(uMax, u));
     this.sinalControle = u;
-    this.I = u;
+    this.Q_ctrl = u;
     return erro;
   }
 
@@ -152,8 +158,8 @@ class EletrolisadorJS {
     };
   }
 
-  setI(v)       { this.I = v; }
-  setQ(v)       { this.Q_ctrl = v; }
+  setI(v)       { this.I = clamp(v, this.sat.Imin, this.sat.Imax); }
+  setQ(v)       { this.Q_ctrl = clamp(v, this.sat.Qmin, this.sat.Qmax); }
   setNcells(v)  { this.Ncells = v; }
   setTamb(c)    { this.Tamb_K = c + 273.15; }
   setRefT(v)    { this.refT = v; }
@@ -162,6 +168,23 @@ class EletrolisadorJS {
     if (ki !== undefined) this.Ki = ki;
     if (kd !== undefined) this.Kd = kd;
   }
+
+  resetPID() {
+    this.acaoIntegral = 0;
+    this._lastErro = 0;
+    this.sinalControle = this.Q_ctrl;
+  }
+
+  setSaturations(sat) {
+    this.sat = {
+      Imin: sat.Imin,
+      Imax: sat.Imax,
+      Qmin: sat.Qmin,
+      Qmax: sat.Qmax,
+    };
+    this.setI(this.I);
+    this.setQ(this.Q_ctrl);
+  }
 }
 
 // ============================================================
@@ -169,6 +192,7 @@ class EletrolisadorJS {
 // ============================================================
 function q(s) { return document.querySelector(s); }
 function fmt(x, d=4) { return Number(x).toFixed(d); }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 // ============================================================
 // CONSTANTES
@@ -189,11 +213,18 @@ const els = {
   I_txt:      q('#I_txt'),    Q_txt:      q('#Q_txt'),    Tamb_txt:   q('#Tamb_txt'),
   refT_txt:   q('#refT_txt'), Ncells_txt: q('#Ncells_txt'),
   kp_txt:     q('#kp_txt'),   ki_txt:     q('#ki_txt'),   kd_txt:     q('#kd_txt'),
+  loopModeToggle: q('#loopModeToggle'),
+  loopModeLabel:  q('#loopModeLabel'),
 
   start:       q('#startBtn'),
   reset:       q('#resetBtn'),
   runBatch:    q('#runBatchBtn'),
   simDuration: q('#simDuration'),
+  satImin:     q('#satImin'),
+  satImax:     q('#satImax'),
+  satQmin:     q('#satQmin'),
+  satQmax:     q('#satQmax'),
+  applySatBtn: q('#applySatBtn'),
 
   kpi_V:    q('#kpi_V'),
   kpi_T:    q('#kpi_T'),
@@ -212,6 +243,13 @@ const DEFAULTS = {
   I: 0, Q: 0, Ncells: 50, Tamb: 25, refT: 353, kp: 0, ki: 0, kd: 0,
 };
 
+const SAT_DEFAULTS = {
+  Imin: 0,
+  Imax: 500,
+  Qmin: -5000,
+  Qmax: 5000,
+};
+
 // ============================================================
 // SINCRONIZAÇÃO SLIDER <-> TEXTO
 // ============================================================
@@ -221,9 +259,6 @@ const pares = [
   [els.Tamb,   els.Tamb_txt],
   [els.refT,   els.refT_txt],
   [els.Ncells, els.Ncells_txt],
-  [els.kp,     els.kp_txt],
-  [els.ki,     els.ki_txt],
-  [els.kd,     els.kd_txt],
 ];
 
 pares.forEach(([slider, txt]) => {
@@ -239,6 +274,37 @@ pares.forEach(([slider, txt]) => {
   txt.addEventListener('keydown', e => { if (e.key === 'Enter') sync(); });
 });
 
+const gainPairs = [
+  [els.kp, els.kp_txt],
+  [els.ki, els.ki_txt],
+  [els.kd, els.kd_txt],
+];
+
+gainPairs.forEach(([slider, txt]) => {
+  if (!slider || !txt) return;
+
+  // Ao mexer no slider, o ganho passa a ser exatamente o valor do slider.
+  slider.addEventListener('input', () => { txt.value = slider.value; });
+
+  // Ao editar texto, mantém o valor digitado para o ganho e satura apenas a posição visual do slider.
+  const syncGainSliderOnly = () => {
+    const v = Number(txt.value);
+    if (!Number.isFinite(v)) return;
+    const clamped = clamp(v, Number(slider.min), Number(slider.max));
+    slider.value = clamped;
+  };
+
+  txt.addEventListener('input', syncGainSliderOnly);
+  txt.addEventListener('change', syncGainSliderOnly);
+  txt.addEventListener('keydown', e => { if (e.key === 'Enter') syncGainSliderOnly(); });
+});
+
+function gainFromText(txtEl, sliderEl) {
+  const v = Number(txtEl?.value);
+  if (Number.isFinite(v)) return v;
+  return Number(sliderEl?.value ?? 0);
+}
+
 // ============================================================
 // UI
 // ============================================================
@@ -246,6 +312,9 @@ function uiRunning(running) {
   els.start.disabled   = false;
   els.reset.disabled   = running;
   els.runBatch.disabled = running;
+  [els.satImin, els.satImax, els.satQmin, els.satQmax, els.applySatBtn].forEach(el => {
+    if (el) el.disabled = running;
+  });
   els.start.textContent = running ? 'Parar' : 'Iniciar';
   els.start.classList.toggle('btn-danger',  running);
   els.start.classList.toggle('btn-primary', !running);
@@ -260,6 +329,76 @@ function updateKPIs(s) {
 
 function resetKPIs() {
   ['kpi_V','kpi_T','kpi_nH2','kpi_refT'].forEach(id => els[id].textContent = '—');
+}
+
+function setLoopMode(closedLoop) {
+  if (!els.loopModeToggle || !els.loopModeLabel) return;
+  els.loopModeToggle.checked = closedLoop;
+  els.loopModeLabel.textContent = closedLoop ? 'Malha Fechada' : 'Malha Aberta';
+}
+
+function getSaturationFromUI() {
+  const raw = {
+    Imin: Number(els.satImin?.value),
+    Imax: Number(els.satImax?.value),
+    Qmin: Number(els.satQmin?.value),
+    Qmax: Number(els.satQmax?.value),
+  };
+
+  const sat = {
+    Imin: Number.isFinite(raw.Imin) ? raw.Imin : SAT_DEFAULTS.Imin,
+    Imax: Number.isFinite(raw.Imax) ? raw.Imax : SAT_DEFAULTS.Imax,
+    Qmin: Number.isFinite(raw.Qmin) ? raw.Qmin : SAT_DEFAULTS.Qmin,
+    Qmax: Number.isFinite(raw.Qmax) ? raw.Qmax : SAT_DEFAULTS.Qmax,
+  };
+
+  if (sat.Imin > sat.Imax) [sat.Imin, sat.Imax] = [sat.Imax, sat.Imin];
+  if (sat.Qmin > sat.Qmax) [sat.Qmin, sat.Qmax] = [sat.Qmax, sat.Qmin];
+
+  return sat;
+}
+
+function applySaturationSettings(showStatus = false) {
+  const sat = getSaturationFromUI();
+
+  if (els.satImin) els.satImin.value = sat.Imin;
+  if (els.satImax) els.satImax.value = sat.Imax;
+  if (els.satQmin) els.satQmin.value = sat.Qmin;
+  if (els.satQmax) els.satQmax.value = sat.Qmax;
+
+  if (els.I) {
+    els.I.min = String(sat.Imin);
+    els.I.max = String(sat.Imax);
+  }
+  if (els.I_txt) {
+    els.I_txt.min = String(sat.Imin);
+    els.I_txt.max = String(sat.Imax);
+  }
+  if (els.Q) {
+    els.Q.min = String(sat.Qmin);
+    els.Q.max = String(sat.Qmax);
+  }
+  if (els.Q_txt) {
+    els.Q_txt.min = String(sat.Qmin);
+    els.Q_txt.max = String(sat.Qmax);
+  }
+
+  const iClamped = clamp(Number(els.I?.value ?? DEFAULTS.I), sat.Imin, sat.Imax);
+  const qClamped = clamp(Number(els.Q?.value ?? DEFAULTS.Q), sat.Qmin, sat.Qmax);
+  if (els.I) els.I.value = iClamped;
+  if (els.I_txt) els.I_txt.value = iClamped;
+  if (els.Q) els.Q.value = qClamped;
+  if (els.Q_txt) els.Q_txt.value = qClamped;
+
+  if (sim) {
+    sim.setSaturations(sat);
+    sim.setI(iClamped);
+    sim.setQ(qClamped);
+  }
+
+  if (showStatus) {
+    els.status.textContent = 'Saturações de I e Q aplicadas.';
+  }
 }
 
 // ============================================================
@@ -332,19 +471,24 @@ let _stepCount = 0;
 // INSTÂNCIA
 // ============================================================
 function createSim() {
+  const sat = getSaturationFromUI();
+  const kp = gainFromText(els.kp_txt, els.kp);
+  const ki = gainFromText(els.ki_txt, els.ki);
+  const kd = gainFromText(els.kd_txt, els.kd);
   return new EletrolisadorJS({
     I:      Number(els.I.value),
     Q:      Number(els.Q.value),
     Ncells: Number(els.Ncells.value),
     Tamb_C: Number(els.Tamb.value),
     refT:   Number(els.refT.value),
-    pid:    { kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) },
+    pid:    { kp, ki, kd },
+    sat,
     consts: { ...C },
   });
 }
 
-function pidAtivo() {
-  return Number(els.kp.value) > 0 || Number(els.ki.value) > 0 || Number(els.kd.value) > 0;
+function closedLoopAtivo() {
+  return Boolean(els.loopModeToggle?.checked);
 }
 
 // ============================================================
@@ -371,23 +515,44 @@ function stopRealtime() {
 
 function tickRealtime(stepsPerInterval) {
   if (!sim) return;
+  const closedLoop = closedLoopAtivo();
+
   sim.setI(Number(els.I.value));
-  sim.setQ(Number(els.Q.value));
+  if (!closedLoop) sim.setQ(Number(els.Q.value));
   sim.setNcells(Number(els.Ncells.value));
   sim.setTamb(Number(els.Tamb.value));
   sim.setRefT(Number(els.refT.value));
-  sim.setGains({ kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) });
+  sim.setGains({
+    kp: gainFromText(els.kp_txt, els.kp),
+    ki: gainFromText(els.ki_txt, els.ki),
+    kd: gainFromText(els.kd_txt, els.kd),
+  });
+
+  els.I.value = sim.I;
+  els.I_txt.value = sim.I;
+  if (!closedLoop) {
+    els.Q.value = sim.Q_ctrl;
+    els.Q_txt.value = sim.Q_ctrl;
+  }
 
   let lastS;
   for (let i = 0; i < stepsPerInterval; i++) {
+    if (closedLoop) sim.controleTemperatura(sim.T_stack);
     lastS = sim.stepOnce();
-    if (pidAtivo()) sim.controleTemperatura(lastS.T_stack);
     _stepCount++;
     if (_stepCount % STEPS_PER_POINT === 0) {
       const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
       _pushAllCharts(tSec, lastS, sim.refT);
     }
   }
+
+  if (closedLoop && lastS) {
+    const qVal = sim.Q_ctrl;
+    els.Q.value = qVal;
+    els.Q_txt.value = qVal.toFixed(1);
+    lastS.Q_ctrl = qVal;
+  }
+
   updateKPIs(lastS);
   updateViz(lastS);
 }
@@ -404,16 +569,25 @@ function runBatch() {
   _stepCount = 0;
 
   const bSim = createSim();
+  const closedLoop = closedLoopAtivo();
   let lastS;
   for (let i = 0; i < totalSteps; i++) {
+    if (closedLoop) bSim.controleTemperatura(bSim.T_stack);
     lastS = bSim.stepOnce();
-    if (pidAtivo()) bSim.controleTemperatura(lastS.T_stack);
     _stepCount++;
     if (_stepCount % STEPS_PER_POINT === 0) {
       const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
       _pushAllCharts(tSec, lastS, bSim.refT);
     }
   }
+
+  if (closedLoop && lastS) {
+    const qVal = bSim.Q_ctrl;
+    els.Q.value = qVal;
+    els.Q_txt.value = qVal.toFixed(1);
+    lastS.Q_ctrl = qVal;
+  }
+
   updateKPIs(lastS);
   updateViz(lastS);
   els.status.textContent = `✅ Simulado: ${durS} s`;
@@ -437,6 +611,7 @@ function fullReset() {
     if (sliderMap[k]) sliderMap[k].value = DEFAULTS[k];
     if (txtMap[k])    txtMap[k].value    = DEFAULTS[k];
   });
+  setLoopMode(false);
   updateViz({ Vcell: 0, T_stack: DEFAULTS.Tamb + 273.15, nH2: 0, Ncells: DEFAULTS.Ncells });
 }
 
@@ -461,6 +636,20 @@ function updateViz(s) {
 els.start.addEventListener('click', () => { timer ? stopRealtime() : startRealtime(); });
 els.reset.addEventListener('click', fullReset);
 els.runBatch.addEventListener('click', () => { if (timer) stopRealtime(); runBatch(); });
+els.applySatBtn?.addEventListener('click', () => applySaturationSettings(true));
+
+els.loopModeToggle?.addEventListener('change', () => {
+  setLoopMode(els.loopModeToggle.checked);
+  if (sim) sim.resetPID();
+});
+
+const gainInputs = [els.kp, els.kp_txt, els.ki, els.ki_txt, els.kd, els.kd_txt];
+gainInputs.forEach(el => el?.addEventListener('input', () => setLoopMode(true)));
+gainInputs.forEach(el => el?.addEventListener('change', () => setLoopMode(true)));
+
+els.Q?.addEventListener('input', () => setLoopMode(false));
+els.Q_txt?.addEventListener('input', () => setLoopMode(false));
+els.Q_txt?.addEventListener('change', () => setLoopMode(false));
 
 document.querySelectorAll('[data-coming-soon]').forEach(el =>
   el.addEventListener('click', e => { e.preventDefault(); showToast('Em breve…'); })
@@ -473,6 +662,8 @@ function showToast(msg) {
 
 function boot() {
   initCharts();
+  setLoopMode(false);
+  applySaturationSettings(false);
   updateViz({ Vcell: 0, T_stack: DEFAULTS.Tamb + 273.15, nH2: 0, Ncells: DEFAULTS.Ncells });
 }
 boot();
