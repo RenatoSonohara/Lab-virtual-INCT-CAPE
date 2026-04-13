@@ -1,0 +1,139 @@
+/* UFSC Simulador — estilos base */
+:root{
+  --ufsc-blue: #0b3b8c;
+  --ufsc-blue-2: #0a2f70;
+  --ufsc-ink: #111827;
+  --ufsc-muted: #6b7280;
+  --ufsc-bg: #f3f4f6;
+  --ufsc-card: #ffffff;
+  --ufsc-border: rgba(0,0,0,.10);
+}
+
+.ufsc-body{
+  background: var(--ufsc-bg);
+  color: var(--ufsc-ink);
+}
+
+.main-container{
+  max-width: 1320px;
+}
+
+.ufsc-topbar{
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(90deg, var(--ufsc-blue), var(--ufsc-blue-2));
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,.15);
+}
+
+.ufsc-badge{
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.18);
+  letter-spacing: .08em;
+}
+
+.ufsc-title{
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.ufsc-sub{
+  font-size: .85rem;
+  opacity: .85;
+}
+
+.ufsc-clock{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  padding: .35rem .6rem;
+  border-radius: .6rem;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.18);
+}
+
+.kpis .kpi strong{
+  letter-spacing: .01em;
+}
+
+.stats{
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+.ufsc-footer{
+  margin-top: 28px;
+  background: #0b1220;
+  color: rgba(255,255,255,.85);
+}
+
+.ufsc-footer-inner{
+  padding: 18px 0 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ufsc-footer .logo{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.12);
+  margin-bottom: 8px;
+}
+
+.ufsc-footer .name{
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.ufsc-footer .dept{
+  opacity: .8;
+  font-size: .9rem;
+}
+
+.ufsc-footer .right{
+  text-align: right;
+  font-size: .9rem;
+  opacity: .9;
+}
+
+.ufsc-footer a{
+  color: rgba(255,255,255,.85);
+  text-decoration: none;
+}
+.ufsc-footer a:hover{
+  text-decoration: underline;
+}
+
+.ufsc-footer .bar{
+  height: 4px;
+  background: linear-gradient(90deg, #0b3b8c, #22c55e, #f59e0b);
+}
+
+/* Toast simples */
+.toast{
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  background: rgba(17,24,39,.92);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  z-index: 1000;
+}
+
+.hidden{
+  display: none !important;
+}

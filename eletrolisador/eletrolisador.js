@@ -1,0 +1,478 @@
+/**
+ * ============================
+ * Simulador Eletrolisador PEM — UFSC
+ * Modelo eletroquímico completo (Lebbal & Lecœuche, 2009)
+ * com dinâmica térmica.
+ *
+ * ENTRADAS:  I (corrente, A), Q (fluxo de calor de controle, W),
+ *            Ncells (nº células, parâmetro), Tamb (°C)
+ * SAÍDAS:    Vcell (V), T_stack (K), nH2 (mol/s)
+ * REFERÊNCIA: T_stack
+ * ============================
+ *
+ * Modelo de tensão (Lebbal & Lecœuche, 2009):
+ *   Ucell = Vrev + Vact + Vdiff + Vohm
+ *
+ *   Vrev  = V0 + (RT/2F) * ln( Ph2 * Po2^0.5 / ah2o )
+ *   Vact  = (RT / alpha*n*F) * ln(I / I0)
+ *   Vdiff = -(RT / z*F) * ln(1 - i/Ilim)
+ *   Vohm  = Rmem * I
+ *
+ *   Ph2  = Pcatodo - Ph2o(T)
+ *   Po2  = Panodo  - Ph2o(T)
+ *   Ph2o = 6.1078e-3 * exp(17.2694*(T-273.15)/(T-34.85))  [bar]
+ *
+ *  Dinâmica térmica do stack:
+ *    M_th * dT/dt = Q_gen - Q_cool - Q_ctrl
+ *    Q_gen  = Ncells * I * (Vcell - E_thermo)   [W]
+ *    Q_cool = h_cool * (T - Tamb_K)             [W]
+ *    Q_ctrl = Q  (fluxo de calor de controle, W — positivo = resfria)
+ *
+ *  Vazão molar de H₂:
+ *    nH2 = Ncells * I / (2 * F)    [mol/s]
+ */
+
+// ── Constantes físicas ──────────────────────────────────────
+const F        = 96485;       // C/mol  (Faraday)
+const R_gas    = 8.314;       // J/(mol·K)
+const alpha    = 0.5;         // coef. transferência de carga
+const n_elec   = 2;           // elétrons por mol H₂
+
+// ── Parâmetros PEM padrão ───────────────────────────────────
+const V0       = 1.229;       // V  — potencial reversível padrão (25 °C)
+const I0       = 1e-3;        // A  — corrente de troca
+const Ilim     = 2.0;         // A/cm²  — densidade de corrente limite
+const A_cell   = 100;         // cm²  — área da célula
+const Rmem     = 0.18e-3;     // Ω  — resistência da membrana (célula)
+const z_diff   = 2;           // nº elétrons em Vdiff
+const Pcatodo  = 1.012325;    // bar  — pressão total cátodo
+const Panodo   = 1.012325;    // bar  — pressão total ânodo
+const ah2o     = 1.0;         // atividade da água líquida
+
+// ── Parâmetros térmicos ─────────────────────────────────────
+const M_th     = 5000;        // J/K
+const h_cool   = 10;          // W/K
+const E_thermo = 1.48;        // V  — tensão termoneutra
+
+// ────────────────────────────────────────────────────────────
+//  Pressão de vapor d'água (bar) — eq. (12)
+// ────────────────────────────────────────────────────────────
+function ph2o_bar(T_K) {
+  return 6.1078e-3 * Math.exp(17.2694 * (T_K - 273.15) / (T_K - 34.85));
+}
+
+// ────────────────────────────────────────────────────────────
+//  Componentes de tensão isoladas (para gráfico)
+// ────────────────────────────────────────────────────────────
+function calcComponents(I, T_K) {
+  if (I <= 0) return { Vrev: 0, Vact: 0, Vdiff: 0, Vohm: 0 };
+
+  const Ph2o = ph2o_bar(T_K);
+  const Ph2  = Math.max(Pcatodo - Ph2o, 1e-9);
+  const Po2  = Math.max(Panodo  - Ph2o, 1e-9);
+
+  const Vrev  = V0 + (R_gas * T_K / (2 * F)) * Math.log(Ph2 * Math.sqrt(Po2) / ah2o);
+  const Vact  = (R_gas * T_K / (alpha * n_elec * F)) * Math.log(I / I0);
+  const Vohm  = Rmem * I;
+  const i_d   = I / A_cell;
+  const Vdiff = (i_d < Ilim)
+    ? -(R_gas * T_K / (z_diff * F)) * Math.log(1 - i_d / Ilim)
+    : 0;
+
+  return { Vrev, Vact, Vdiff, Vohm };
+}
+
+// ────────────────────────────────────────────────────────────
+class EletrolisadorJS {
+  constructor(opts) {
+    const { I, Q, Ncells, Tamb_C, refT, consts, pid } = opts;
+
+    this.DELTA_T  = consts.DELTA_T;
+    this.I        = I;
+    this.Q_ctrl   = Q;           // W — fluxo de calor de controle
+    this.Ncells   = Ncells;
+    this.Tamb_K   = Tamb_C + 273.15;
+    this.refT     = refT;
+    this.T_stack  = this.Tamb_K;
+
+    // PID
+    this.Kp = pid.kp;
+    this.Ki = pid.ki;
+    this.Kd = pid.kd;
+    this.acaoIntegral = 0;
+    this._lastT = this.T_stack;
+    this.sinalControle = 0;
+  }
+
+  _calcVcell(I, T_K) {
+    if (I <= 0) return 0;
+    const c = calcComponents(I, T_K);
+    return c.Vrev + c.Vact + c.Vdiff + c.Vohm;
+  }
+
+  controleTemperatura(T) {
+    const uMin = 0, uMax = 500;
+    const erro  = this.refT - T;
+    const dMeas = (T - this._lastT) / this.DELTA_T;
+    this._lastT = T;
+
+    this.acaoIntegral += this.Ki * erro * this.DELTA_T;
+    this.acaoIntegral  = Math.max(uMin, Math.min(uMax, this.acaoIntegral));
+
+    let u = this.Kp * erro + this.acaoIntegral - this.Kd * dMeas;
+    u = Math.max(uMin, Math.min(uMax, u));
+    this.sinalControle = u;
+    this.I = u;
+    return erro;
+  }
+
+  stepOnce() {
+    const dt     = this.DELTA_T;
+    const I      = this.I;
+    const T      = this.T_stack;
+
+    const Vcell  = this._calcVcell(I, T);
+    const Q_gen  = this.Ncells * I * Math.max(0, Vcell - E_thermo);
+    const Q_cool = h_cool * (T - this.Tamb_K);
+    const dT     = (Q_gen - Q_cool - this.Q_ctrl) / M_th;
+    this.T_stack += dT * dt;
+
+    const nH2 = (I > 0) ? (this.Ncells * I) / (2 * F) : 0;
+
+    return {
+      Vcell,
+      T_stack: this.T_stack,
+      nH2,
+      I,
+      Ncells:  this.Ncells,
+      Q_ctrl:  this.Q_ctrl,
+      Tamb_C:  this.Tamb_K - 273.15,
+      sinalControle: this.sinalControle,
+      erroT:   this.refT - this.T_stack,
+    };
+  }
+
+  setI(v)       { this.I = v; }
+  setQ(v)       { this.Q_ctrl = v; }
+  setNcells(v)  { this.Ncells = v; }
+  setTamb(c)    { this.Tamb_K = c + 273.15; }
+  setRefT(v)    { this.refT = v; }
+  setGains({kp, ki, kd}) {
+    if (kp !== undefined) this.Kp = kp;
+    if (ki !== undefined) this.Ki = ki;
+    if (kd !== undefined) this.Kd = kd;
+  }
+}
+
+// ============================================================
+// UTILITÁRIOS
+// ============================================================
+function q(s) { return document.querySelector(s); }
+function fmt(x, d=4) { return Number(x).toFixed(d); }
+
+// ============================================================
+// CONSTANTES
+// ============================================================
+const C = { DELTA_T: 0.1 };
+const STEPS_PER_POINT = 10;
+
+// ============================================================
+// DOM
+// ============================================================
+const els = {
+  status: q('#statusMsg'),
+
+  I:      q('#I'),      Q:      q('#Q'),      Tamb:  q('#Tamb'),
+  refT:   q('#refT'),   Ncells: q('#Ncells'),
+  kp:     q('#kp'),     ki:     q('#ki'),     kd:    q('#kd'),
+
+  I_txt:      q('#I_txt'),    Q_txt:      q('#Q_txt'),    Tamb_txt:   q('#Tamb_txt'),
+  refT_txt:   q('#refT_txt'), Ncells_txt: q('#Ncells_txt'),
+  kp_txt:     q('#kp_txt'),   ki_txt:     q('#ki_txt'),   kd_txt:     q('#kd_txt'),
+
+  start:       q('#startBtn'),
+  reset:       q('#resetBtn'),
+  runBatch:    q('#runBatchBtn'),
+  simDuration: q('#simDuration'),
+
+  kpi_V:    q('#kpi_V'),
+  kpi_T:    q('#kpi_T'),
+  kpi_nH2:  q('#kpi_nH2'),
+  kpi_refT: q('#kpi_refT'),
+
+  chartV:        q('#chartV'),
+  chartT:        q('#chartT'),
+  chartH2:       q('#chartH2'),
+  chartEntradas: q('#chartEntradas'),
+
+  toast: q('#toast'),
+};
+
+const DEFAULTS = {
+  I: 0, Q: 0, Ncells: 50, Tamb: 25, refT: 353, kp: 0, ki: 0, kd: 0,
+};
+
+// ============================================================
+// SINCRONIZAÇÃO SLIDER <-> TEXTO
+// ============================================================
+const pares = [
+  [els.I,      els.I_txt],
+  [els.Q,      els.Q_txt],
+  [els.Tamb,   els.Tamb_txt],
+  [els.refT,   els.refT_txt],
+  [els.Ncells, els.Ncells_txt],
+  [els.kp,     els.kp_txt],
+  [els.ki,     els.ki_txt],
+  [els.kd,     els.kd_txt],
+];
+
+pares.forEach(([slider, txt]) => {
+  if (!slider || !txt) return;
+  slider.addEventListener('input', () => { txt.value = slider.value; });
+  const sync = () => {
+    const v = Number(txt.value);
+    if (!Number.isFinite(v)) return;
+    slider.value = Math.max(Number(slider.min), Math.min(Number(slider.max), v));
+    txt.value = slider.value;
+  };
+  txt.addEventListener('change', sync);
+  txt.addEventListener('keydown', e => { if (e.key === 'Enter') sync(); });
+});
+
+// ============================================================
+// UI
+// ============================================================
+function uiRunning(running) {
+  els.start.disabled   = false;
+  els.reset.disabled   = running;
+  els.runBatch.disabled = running;
+  els.start.textContent = running ? 'Parar' : 'Iniciar';
+  els.start.classList.toggle('btn-danger',  running);
+  els.start.classList.toggle('btn-primary', !running);
+}
+
+function updateKPIs(s) {
+  els.kpi_V.textContent    = fmt(s.Vcell, 4) + ' V';
+  els.kpi_T.textContent    = fmt(s.T_stack, 2) + ' K';
+  els.kpi_nH2.textContent  = fmt(s.nH2, 6) + ' mol/s';
+  els.kpi_refT.textContent = fmt(Number(els.refT.value), 1) + ' K';
+}
+
+function resetKPIs() {
+  ['kpi_V','kpi_T','kpi_nH2','kpi_refT'].forEach(id => els[id].textContent = '—');
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function newChart(canvas, yLabel, labels) {
+  return new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: labels.map(l => ({
+        label: l,
+        data: [],
+        borderWidth: 2,
+        tension: 0.22,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        borderDash: l.startsWith('Ref') ? [5, 5] : [],
+      }))
+    },
+    options: {
+      animation: false, responsive: true,
+      scales: {
+        x: { title: { display: true, text: 'Tempo (s)' } },
+        y: { title: { display: true, text: yLabel } }
+      },
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { mode: 'nearest', intersect: false }
+      }
+    }
+  });
+}
+
+function initCharts() {
+  Object.values(charts).forEach(c => c?.destroy?.());
+  charts.V   = newChart(els.chartV,   'Tensão (V)',    ['U_cell', 'V_rev', 'V_act', 'V_diff', 'V_ohm']);
+  charts.T   = newChart(els.chartT,   'Temp. (K)',     ['T_stack', 'Ref. Temperatura']);
+  charts.H2  = newChart(els.chartH2,  'Vazão (mol/s)', ['ṅ_H₂']);
+  charts.ent = newChart(els.chartEntradas, 'Entradas', ['I (A)', 'Q (W)', 'T_amb (°C)']);
+}
+
+function pushPoint(chart, lbl, arrs) {
+  chart.data.labels.push(lbl);
+  chart.data.datasets.forEach((ds, i) => ds.data.push(arrs[i] ?? null));
+  while (chart.data.labels.length > MAX_POINTS) {
+    chart.data.labels.shift();
+    chart.data.datasets.forEach(ds => ds.data.shift());
+  }
+  chart.update('quiet');
+}
+
+function _pushAllCharts(tSec, s, refT) {
+  const comp = calcComponents(s.I, s.T_stack);
+  pushPoint(charts.V,   tSec, [s.Vcell, comp.Vrev, comp.Vact, comp.Vdiff, comp.Vohm]);
+  pushPoint(charts.T,   tSec, [s.T_stack, refT]);
+  pushPoint(charts.H2,  tSec, [s.nH2]);
+  pushPoint(charts.ent, tSec, [s.I, s.Q_ctrl, s.Tamb_C]);
+}
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let charts = {};
+let timer = null, sim = null;
+const MAX_POINTS = 1200;
+let _stepCount = 0;
+
+// ============================================================
+// INSTÂNCIA
+// ============================================================
+function createSim() {
+  return new EletrolisadorJS({
+    I:      Number(els.I.value),
+    Q:      Number(els.Q.value),
+    Ncells: Number(els.Ncells.value),
+    Tamb_C: Number(els.Tamb.value),
+    refT:   Number(els.refT.value),
+    pid:    { kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) },
+    consts: { ...C },
+  });
+}
+
+function pidAtivo() {
+  return Number(els.kp.value) > 0 || Number(els.ki.value) > 0 || Number(els.kd.value) > 0;
+}
+
+// ============================================================
+// TEMPO REAL
+// ============================================================
+function startRealtime() {
+  if (timer) stopRealtime();
+  els.status.textContent = '▶️ Executando';
+  initCharts();
+  _stepCount = 0;
+  sim = createSim();
+  uiRunning(true);
+  const intervalMs = 16;
+  const stepsPerInterval = Math.max(1, Math.round(intervalMs / (C.DELTA_T * 1000)));
+  timer = setInterval(() => tickRealtime(stepsPerInterval), intervalMs);
+}
+
+function stopRealtime() {
+  clearInterval(timer);
+  timer = null; sim = null;
+  uiRunning(false);
+  els.status.textContent = '⏹️ Parado.';
+}
+
+function tickRealtime(stepsPerInterval) {
+  if (!sim) return;
+  sim.setI(Number(els.I.value));
+  sim.setQ(Number(els.Q.value));
+  sim.setNcells(Number(els.Ncells.value));
+  sim.setTamb(Number(els.Tamb.value));
+  sim.setRefT(Number(els.refT.value));
+  sim.setGains({ kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) });
+
+  let lastS;
+  for (let i = 0; i < stepsPerInterval; i++) {
+    lastS = sim.stepOnce();
+    if (pidAtivo()) sim.controleTemperatura(lastS.T_stack);
+    _stepCount++;
+    if (_stepCount % STEPS_PER_POINT === 0) {
+      const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
+      _pushAllCharts(tSec, lastS, sim.refT);
+    }
+  }
+  updateKPIs(lastS);
+  updateViz(lastS);
+}
+
+// ============================================================
+// MODO BATCH
+// ============================================================
+function runBatch() {
+  const durS = Math.max(1, Number(els.simDuration.value) || 100);
+  const totalSteps = Math.round(durS / C.DELTA_T);
+  els.status.textContent = '⏳ Calculando…';
+  initCharts();
+  resetKPIs();
+  _stepCount = 0;
+
+  const bSim = createSim();
+  let lastS;
+  for (let i = 0; i < totalSteps; i++) {
+    lastS = bSim.stepOnce();
+    if (pidAtivo()) bSim.controleTemperatura(lastS.T_stack);
+    _stepCount++;
+    if (_stepCount % STEPS_PER_POINT === 0) {
+      const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
+      _pushAllCharts(tSec, lastS, bSim.refT);
+    }
+  }
+  updateKPIs(lastS);
+  updateViz(lastS);
+  els.status.textContent = `✅ Simulado: ${durS} s`;
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function fullReset() {
+  if (timer) stopRealtime();
+  initCharts();
+  resetKPIs();
+  _stepCount = 0;
+  _vizT = 0;
+  els.status.textContent = 'Pronto';
+  uiRunning(false);
+
+  const sliderMap = { I: els.I, Q: els.Q, Ncells: els.Ncells, Tamb: els.Tamb, refT: els.refT, kp: els.kp, ki: els.ki, kd: els.kd };
+  const txtMap    = { I: els.I_txt, Q: els.Q_txt, Ncells: els.Ncells_txt, Tamb: els.Tamb_txt, refT: els.refT_txt, kp: els.kp_txt, ki: els.ki_txt, kd: els.kd_txt };
+  Object.keys(DEFAULTS).forEach(k => {
+    if (sliderMap[k]) sliderMap[k].value = DEFAULTS[k];
+    if (txtMap[k])    txtMap[k].value    = DEFAULTS[k];
+  });
+  updateViz({ Vcell: 0, T_stack: DEFAULTS.Tamb + 273.15, nH2: 0, Ncells: DEFAULTS.Ncells });
+}
+
+// ============================================================
+// VISUALIZAÇÃO DINÂMICA
+// ============================================================
+const vizTemp   = document.getElementById('vizTemp');
+const vizVcell  = document.getElementById('vizVcell');
+const vizNcells = document.getElementById('vizNcells');
+let _vizT = 0;
+
+function updateViz(s) {
+  _vizT += (s.T_stack - _vizT) * 0.15;
+  if (vizTemp)   vizTemp.textContent   = _vizT.toFixed(1) + ' K';
+  if (vizVcell)  vizVcell.textContent  = fmt(s.Vcell, 4) + ' V';
+  if (vizNcells) vizNcells.textContent = s.Ncells;
+}
+
+// ============================================================
+// EVENTOS
+// ============================================================
+els.start.addEventListener('click', () => { timer ? stopRealtime() : startRealtime(); });
+els.reset.addEventListener('click', fullReset);
+els.runBatch.addEventListener('click', () => { if (timer) stopRealtime(); runBatch(); });
+
+document.querySelectorAll('[data-coming-soon]').forEach(el =>
+  el.addEventListener('click', e => { e.preventDefault(); showToast('Em breve…'); })
+);
+function showToast(msg) {
+  els.toast.textContent = msg;
+  els.toast.classList.remove('hidden');
+  setTimeout(() => els.toast.classList.add('hidden'), 1600);
+}
+
+function boot() {
+  initCharts();
+  updateViz({ Vcell: 0, T_stack: DEFAULTS.Tamb + 273.15, nH2: 0, Ncells: DEFAULTS.Ncells });
+}
+boot();

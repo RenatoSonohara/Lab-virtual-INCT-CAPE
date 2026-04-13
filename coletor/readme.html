@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>README — Simulador Coletor Solar PID (UFSC)</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    :root{
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --ink2: #334155;
+      --muted: #64748b;
+      --border: rgba(15,23,42,.10);
+      --border2: rgba(15,23,42,.06);
+      --accent: #0b5aa7;
+      --accent-2: #2b78c5;
+      --yellow: #f2c230;
+      --shadow: 0 10px 30px rgba(15,23,42,.08);
+      --shadow2: 0 6px 18px rgba(15,23,42,.06);
+      --radius: 18px;
+    }
+
+    body{
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    .wrap{
+      max-width: 1040px;
+    }
+
+    .doc-card{
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .doc-topbar{
+      background:
+        radial-gradient(1200px 320px at 15% 0%, rgba(43,120,197,.10), transparent 60%),
+        radial-gradient(900px 260px at 85% 0%, rgba(11,90,167,.08), transparent 55%),
+        linear-gradient(180deg, #ffffff, #fbfcff);
+      border-bottom: 1px solid var(--border);
+      padding: 1.1rem 1.25rem 1rem;
+    }
+
+    .doc-topline{
+      height: 5px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--yellow));
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    .doc-head{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .smallcap{
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      font-size: .75rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .doc-title{
+      margin: .15rem 0 0;
+      font-weight: 800;
+      font-size: 1.45rem;
+      line-height: 1.15;
+      color: var(--ink);
+    }
+
+    .doc-sub{
+      color: var(--muted);
+      font-size: .94rem;
+      margin-top: .35rem;
+      margin-bottom: 0;
+    }
+
+    .doc-actions{
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: .55rem;
+    }
+
+    .doc-actions .btn{
+      border-radius: 12px;
+      box-shadow: var(--shadow2);
+    }
+
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .doc-body{
+      padding: 1.4rem 1.25rem 1.2rem;
+    }
+
+    .k-hr{
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      border: 0;
+      margin: 1.45rem 0;
+    }
+
+    .section-title{
+      margin: 0 0 .5rem 0;
+      font-weight: 800;
+      font-size: 1.08rem;
+      color: var(--ink);
+    }
+
+    .subtle{
+      color: var(--muted);
+    }
+
+    .soft-panel{
+      border: 1px solid var(--border2);
+      background: rgba(15,23,42,.02);
+      border-radius: 16px;
+      padding: 1rem;
+    }
+
+    .eq-block{
+      border: 1px solid rgba(11,90,167,.12);
+      background: rgba(11,90,167,.04);
+      border-radius: 16px;
+      padding: 1rem 1rem .6rem;
+    }
+
+    .eq-chip{
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .28rem .6rem;
+      border-radius: 999px;
+      background: rgba(11,90,167,.09);
+      color: var(--accent);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      margin-bottom: .55rem;
+    }
+
+    .mini-grid{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .75rem;
+      margin-top: .9rem;
+    }
+
+    .mini-card{
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,.86);
+      border-radius: 14px;
+      padding: .85rem;
+    }
+
+    .mini-card small{
+      display: block;
+      color: var(--muted);
+      margin-bottom: .22rem;
+    }
+
+    .mini-card strong{
+      color: var(--ink);
+      font-size: .98rem;
+      display: block;
+      overflow-x: auto;
+    }
+
+    code{
+      background: rgba(11,90,167,.08);
+      border: 1px solid rgba(11,90,167,.10);
+      padding: .08rem .32rem;
+      border-radius: .4rem;
+      font-size: .95em;
+    }
+
+    .katex-display{
+      margin: .6rem 0 1rem;
+      padding: .35rem .25rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    .katex{
+      font-size: 1.05em;
+    }
+
+    .table-wrap{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .table thead th{
+      font-weight: 800;
+      color: var(--ink);
+      background: rgba(15,23,42,.025);
+      border-bottom-width: 1px;
+    }
+
+    .table tbody td{
+      vertical-align: top;
+    }
+
+    .callout{
+      color: var(--ink2);
+      border: 1px dashed rgba(15,23,42,.18);
+      background: rgba(15,23,42,.02);
+      border-radius: 14px;
+      padding: .9rem 1rem;
+    }
+
+    .footerline{
+      color: var(--muted);
+      font-size: .9rem;
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: .2rem;
+    }
+
+    @media (max-width: 991.98px){
+      .mini-grid{
+        grid-template-columns: 1fr;
+      }
+
+      .doc-actions{
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container wrap py-4">
+    <div class="doc-card">
+      <div class="doc-topbar">
+        <div class="doc-topline"></div>
+
+        <div class="doc-head">
+          <div>
+            <div class="smallcap">Universidade Federal de Santa Catarina</div>
+            <h1 class="doc-title">README — Simulador do Coletor Solar Térmico com Controle PID</h1>
+            <p class="doc-sub">
+              Documento de apoio técnico do simulador, com descrição do modelo matemático, variáveis, parâmetros e procedimento de uso.
+            </p>
+          </div>
+
+          <div class="doc-actions">
+            <a class="btn btn-primary btn-sm" href="index.html">Abrir o simulador</a>
+            <div class="text-muted small mono">Arquivo: <b>readme.html</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-body">
+        <div class="soft-panel">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="smallcap mb-1">Autor</div>
+              <div><b>Davi de Lima Rosa</b></div>
+            </div>
+            <div class="col-md-4">
+              <div class="smallcap mb-1">Supervisão</div>
+              <div><b>Marcus V. Americano da Costa</b></div>
+            </div>
+            <div class="col-md-4">
+              <div class="smallcap mb-1">Ano</div>
+              <div><b>2026</b></div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Visão geral</h2>
+        <p class="subtle mb-0">
+          O simulador representa o comportamento térmico de um coletor solar por meio de um
+          <b>modelo concentrado</b>, no qual a temperatura principal do coletor é descrita pela
+          <b>Equação (11)</b>. A interface permite variar irradiância solar, temperatura ambiente,
+          referência do controlador e parâmetros PID, além de acompanhar indicadores e gráficos em tempo real ou em tempo simulado.
+        </p>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Estrutura conceitual do sistema</h2>
+        <p class="subtle">
+          O modelo considera três grupos principais de influência sobre a temperatura do coletor:
+        </p>
+
+        <div class="mini-grid">
+          <div class="mini-card">
+            <small>Entrada de energia</small>
+            <strong>Radiação solar absorvida</strong>
+          </div>
+          <div class="mini-card">
+            <small>Saída de energia</small>
+            <strong>Perdas térmicas para o ambiente</strong>
+          </div>
+          <div class="mini-card">
+            <small>Dinâmica hidráulica</small>
+            <strong>Efeito da temperatura de entrada e da vazão</strong>
+          </div>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Modelo matemático</h2>
+        <p class="subtle">
+          A dinâmica principal do coletor é dada por:
+        </p>
+
+        <div class="eq-block">
+          <div class="eq-chip">Equação 11</div>
+
+          <div>
+            $$
+            \frac{dT_c}{dt}
+            =
+            \frac{A_c \tau \eta_0}{C}\, I
+            -
+            \frac{U_L A_c}{C}\,(T_{av} - T_a)
+            +
+            \frac{F_c}{V}\,(T_{in} - T_c)
+            $$
+          </div>
+
+          <p class="subtle small mb-0">
+            Esta equação expressa a taxa de variação da temperatura do coletor como a soma de três efeitos:
+            ganho solar, perdas térmicas e influência do escoamento.
+          </p>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card">
+            <small>Ganho solar</small>
+            <strong>\(\frac{A_c \tau \eta_0}{C}\,I\)</strong>
+          </div>
+          <div class="mini-card">
+            <small>Perda térmica</small>
+            <strong>\(\frac{U_L A_c}{C}(T_{av}-T_a)\)</strong>
+          </div>
+          <div class="mini-card">
+            <small>Efeito do escoamento</small>
+            <strong>\(\frac{F_c}{V}(T_{in}-T_c)\)</strong>
+          </div>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Interpretação física das variáveis</h2>
+        <div class="soft-panel">
+          <div class="mb-2"><b>\(T_c\)</b>: temperatura principal do coletor.</div>
+          <div class="mb-2"><b>\(I\)</b>: irradiância solar incidente no coletor.</div>
+          <div class="mb-2"><b>\(A_c\)</b>: área efetiva de coleta solar.</div>
+          <div class="mb-2"><b>\(\tau \eta_0\)</b>: fator óptico efetivo de aproveitamento da radiação.</div>
+          <div class="mb-2"><b>\(C\)</b>: capacidade térmica equivalente do sistema.</div>
+          <div class="mb-2"><b>\(U_L\)</b>: coeficiente global de perdas térmicas.</div>
+          <div class="mb-2"><b>\(T_{av}\)</b>: temperatura média usada no termo de perdas.</div>
+          <div class="mb-2"><b>\(T_a\)</b>: temperatura ambiente.</div>
+          <div class="mb-2"><b>\(F_c\)</b>: termo associado ao escoamento no modelo implementado.</div>
+          <div class="mb-0"><b>\(T_{in}\)</b>: temperatura de entrada do fluido no coletor.</div>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Modelagem simplificada da temperatura de entrada</h2>
+        <p class="subtle">
+          No simulador, a temperatura de entrada <b>\(T_{in}\)</b> não é tratada como um volume acumulativo detalhado.
+          Em vez disso, ela é atualizada de forma simplificada para reproduzir um comportamento mais rotativo do fluido:
+        </p>
+
+        <div class="eq-block">
+          <div class="eq-chip">Aproximação usada na simulação</div>
+
+          <div>
+            $$
+            T_{in,\;novo}
+            \approx
+            \beta\,T_{in,\;anterior}
+            +
+            (1-\beta)\left(\frac{T_a + T_{out}}{2}\right)
+            +
+            \text{ruído}
+            $$
+          </div>
+
+          <p class="subtle small mb-0">
+            Essa formulação foi adotada para evitar que a entrada se comporte como um grande reservatório com forte acúmulo térmico,
+            deixando a simulação mais leve e mais adequada ao objetivo visual e didático.
+          </p>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Controlador PID</h2>
+        <p class="subtle">
+          O controlador atua sobre a vazão para aproximar a temperatura de saída da referência térmica.
+          O erro de controle é calculado por:
+        </p>
+
+        <div class="eq-block">
+          <div class="eq-chip">Controle</div>
+
+          <div>
+            $$
+            e(t) = T_{out}(t) - T_{ref}(t)
+            $$
+            $$
+            u(t) = K_p\,e(t) + K_i \int e(t)\,dt - K_d\,\frac{dT_{out}}{dt}
+            $$
+          </div>
+
+          <p class="subtle small mb-0">
+            A implementação ainda inclui filtro derivativo opcional, definido pelo parâmetro \(T_f\),
+            para reduzir sensibilidade a ruídos numéricos.
+          </p>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Parâmetros do simulador</h2>
+        <p class="subtle">
+          A tabela a seguir resume os principais parâmetros físicos, numéricos e de controle utilizados no simulador atualizado.
+        </p>
+
+        <div class="table-wrap p-2">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Parâmetro</th>
+                  <th>Unidade</th>
+                  <th>Descrição</th>
+                  <th>Observação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="mono">A_c</td>
+                  <td>m²</td>
+                  <td>Área efetiva do coletor</td>
+                  <td>Participa diretamente do ganho solar e das perdas</td>
+                </tr>
+                <tr>
+                  <td class="mono">U_L</td>
+                  <td>W/(m²·K)</td>
+                  <td>Coeficiente global de perdas térmicas</td>
+                  <td>Quanto maior, maior a perda para o ambiente</td>
+                </tr>
+                <tr>
+                  <td class="mono">τ·η₀</td>
+                  <td>—</td>
+                  <td>Fator óptico efetivo</td>
+                  <td>Representa o aproveitamento da radiação incidente</td>
+                </tr>
+                <tr>
+                  <td class="mono">V</td>
+                  <td>m³</td>
+                  <td>Volume interno do coletor</td>
+                  <td>Usado no termo do escoamento</td>
+                </tr>
+                <tr>
+                  <td class="mono">C</td>
+                  <td>J/K</td>
+                  <td>Capacidade térmica equivalente do sistema</td>
+                  <td>Calculada a partir do fluido + massa térmica da placa</td>
+                </tr>
+                <tr>
+                  <td class="mono">m_p</td>
+                  <td>kg</td>
+                  <td>Massa equivalente da placa</td>
+                  <td>Composição da inércia térmica</td>
+                </tr>
+                <tr>
+                  <td class="mono">c_{p,p}</td>
+                  <td>J/(kg·K)</td>
+                  <td>Calor específico da placa</td>
+                  <td>Composição da inércia térmica</td>
+                </tr>
+                <tr>
+                  <td class="mono">Δt</td>
+                  <td>s</td>
+                  <td>Passo numérico de integração</td>
+                  <td>Integração explícita de Euler</td>
+                </tr>
+                <tr>
+                  <td class="mono">vazão nominal</td>
+                  <td>L/min</td>
+                  <td>Valor de referência para 100% de vazão</td>
+                  <td>A interface exibe vazão em L/min</td>
+                </tr>
+                <tr>
+                  <td class="mono">Kp, Ki, Kd</td>
+                  <td>—</td>
+                  <td>Ganhos do controlador PID</td>
+                  <td>Definem a resposta do controle</td>
+                </tr>
+                <tr>
+                  <td class="mono">T_f</td>
+                  <td>s</td>
+                  <td>Filtro derivativo</td>
+                  <td>\(T_f = 0\) desabilita o filtro</td>
+                </tr>
+                <tr>
+                  <td class="mono">tinMix</td>
+                  <td>—</td>
+                  <td>Fator de mistura da atualização de \(T_{in}\)</td>
+                  <td>Controla a suavização da entrada</td>
+                </tr>
+                <tr>
+                  <td class="mono">tinNoiseAmp</td>
+                  <td>°C</td>
+                  <td>Amplitude do ruído aplicado a \(T_{in}\)</td>
+                  <td>Usado apenas para simulação visual</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Procedimento de uso</h2>
+        <ol class="mb-0">
+          <li>Escolha o modo de execução: <b>tempo real</b> ou <b>tempo simulado</b>.</li>
+          <li>Ajuste irradiância, temperatura ambiente, vazão inicial, referência e ganhos PID.</li>
+          <li>No modo em tempo real, use <b>Iniciar</b>, <b>Pausar</b>, <b>Retomar</b> e <b>Resetar</b>.</li>
+          <li>No modo simulado, defina início, fim e passo de amostragem.</li>
+          <li>Opcionalmente, carregue um arquivo CSV com perfis de irradiância e temperatura ambiente.</li>
+          <li>Analise os indicadores de temperatura, eficiência, erro, vazão e os gráficos gerados.</li>
+        </ol>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Observações sobre o modelo</h2>
+        <div class="callout">
+          Este simulador foi estruturado com foco didático e visual. Por isso, o modelo não busca reproduzir
+          todos os detalhes físicos de um sistema hidráulico real, mas sim representar de forma clara:
+          a absorção de energia solar, as perdas térmicas, a influência da vazão e a atuação de um controlador PID.
+        </div>
+
+        <hr class="k-hr"/>
+
+        <h2 class="section-title">Referências</h2>
+        <div class="callout">
+          Inserir aqui as referências bibliográficas utilizadas no desenvolvimento do modelo térmico,
+          do controle PID e da fundamentação teórica do coletor solar.
+        </div>
+
+        <hr class="k-hr"/>
+
+        <div class="footerline">
+          <div>© 2026 UFSC — Uso acadêmico</div>
+          <div class="mono">Versão do documento: 2.0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false }
+          ],
+          throwOnError: false
+        });
+      }
+    });
+  </script>
+</body>
+</html>

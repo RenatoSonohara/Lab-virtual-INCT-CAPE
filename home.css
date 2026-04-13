@@ -1,0 +1,185 @@
+/* ===== Paleta UFSC (tema claro) ===== */
+:root{
+  --ufsc-blue:#003366;
+  --ufsc-blue-2:#0b3d7a;          /* mais vivo para botoes/hover */
+  --ufsc-yellow:#ffcc00;
+
+  --ink:#0f172a;                  /* texto principal */
+  --muted:#5b6b82;                /* texto secundário */
+  --surface:#ffffff;              /* fundo de cartões */
+  --bg:#f7f9fc;                   /* fundo geral claro */
+  --line:#e5e9f2;                 /* bordas suaves */
+}
+
+/* ===== Layout geral ===== */
+html,body{ overflow-x:hidden; background:var(--bg); color:var(--ink); }
+.main-container{ max-width:90vw; margin:0 auto; }
+@media (min-width:1400px){ .main-container{ max-width:1320px; } }
+
+/* ===== Navbar Light UFSC ===== */
+.ufsc-nav-light{
+  background:#ffffff;
+}
+.ufsc-nav-light .navbar-brand .brand-text{
+  color:var(--ufsc-blue);
+}
+.ufsc-nav-light .navbar-toggler{
+  border-color:rgba(0,0,0,.1);
+}
+.ufsc-nav-light .navbar-toggler-icon{
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0,0,0,.7)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Links com sublinhado amarelo animado */
+.ufsc-link{
+  position:relative; color:var(--ufsc-blue)!important; font-weight:600;
+}
+.ufsc-link::after{
+  content:""; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background:linear-gradient(90deg,var(--ufsc-yellow),#ffd84a);
+  transform:scaleX(0); transform-origin:left; transition:transform .18s ease;
+}
+.ufsc-link:hover::after, .navbar .nav-link.active.ufsc-link::after{
+  transform:scaleX(1);
+}
+
+/* Dropdown claro com bordas suaves */
+.ufsc-dropdown{
+  border:1px solid var(--line);
+  box-shadow:0 12px 28px rgba(2,8,23,.08);
+  padding:.35rem; border-radius:12px; background:#fff;
+}
+.ufsc-dropdown .dropdown-item{ border-radius:8px; font-weight:600; color:#0b2240; }
+.ufsc-dropdown .dropdown-item:hover{ background:rgba(0,0,0,.04); }
+.ufsc-dropdown .dropdown-item.active,
+.ufsc-dropdown .dropdown-item:active{
+  background: rgba(255,204,0,.25); color:#0b2240;
+}
+
+/* ===== HERO Light com sol decorativo ===== */
+.hero-light{
+  background:
+    radial-gradient(60rem 26rem at -10% -10%, rgba(255,204,0,.15), rgba(255,255,255,0)),
+    radial-gradient(70rem 40rem at 110% -20%, rgba(0,51,102,.10), rgba(255,255,255,0)),
+    #fff;
+  color:var(--ink);
+  border-bottom:1px solid var(--line);
+  
+}
+.text-hero{ color:var(--muted); }
+
+/* Sol decorativo (canto superior esquerdo) */
+.hero-sun{
+  position:absolute; inset: -120px auto auto -120px; width:320px; height:320px; border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,204,0,.9) 0, rgba(255,204,0,.6) 42%, rgba(255,204,0,.0) 60%),
+    radial-gradient(520px 520px at 50% 50%, rgba(255,220,60,.25), rgba(255,255,255,0) 60%);
+  filter: blur(.3px);
+  pointer-events:none;
+}
+
+/* Card do herói */
+.hero-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+
+/* Badge UFSC/INCT */
+.ufsc-badge{
+  display:inline-block; padding:.35rem .6rem; border-radius:999px;
+  background:rgba(255,204,0,.2); color:#6b5200; border:1px solid rgba(255,204,0,.55);
+  font-weight:700;
+}
+
+/* Botão UFSC */
+.btn-ufsc{
+  background:var(--ufsc-blue); border-color:var(--ufsc-blue);
+  color:#fff; font-weight:700;
+  box-shadow:0 6px 18px rgba(0,51,102,.18);
+}
+.btn-ufsc:hover{ background:var(--ufsc-blue-2); border-color:var(--ufsc-blue-2); color:#fff; }
+
+/* Ícone de sol (inline-svg via background) */
+.i-sun{
+  width:20px; height:20px; display:inline-block; flex:0 0 20px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="%23ffbf00" viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zm10.48 0l1.8-1.79 1.41 1.41-1.79 1.8-1.42-1.42zM12 4V1h-0v3h0zm0 19v-3h-0v3h0zm7.16-9h3v0h-3v0zM1.84 12h3v0h-3v0zm14.4 7.16l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM4.84 17.16l-1.79 1.8 1.41 1.41 1.8-1.79-1.42-1.42zM12 6a6 6 0 100 12 6 6 0 000-12z"/></svg>');
+  background-size:contain; background-repeat:no-repeat; background-position:center;
+}
+
+/* ===== Cards das simulações ===== */
+.sim-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.sim-card:hover{
+  transform: translateY(-3px);
+  border-color: #cfd6e3;
+  box-shadow: 0 14px 28px rgba(2,8,23,.10);
+}
+.sim-card .card-title{ color:var(--ufsc-blue); font-weight:800; }
+
+/* ===== Bloco institucional ===== */
+.info-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+
+/* ===== Rodapé Light ===== */
+.ufsc-footer{
+  background:#ffffff;
+  border-top:4px solid var(--ufsc-yellow);
+  color:#2a3b55;
+}
+.ufsc-footer-inner{
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  padding:18px 0;
+}
+.ufsc-footer .logo{ font-weight:900;letter-spacing:1px;font-size:1.1rem; color:var(--ufsc-blue) }
+.ufsc-footer .name{ font-weight:700 }
+.ufsc-footer .dept{ color:#5b6b82 }
+.ufsc-footer .right a{ color:var(--ufsc-blue);text-decoration:none;font-weight:700 }
+.ufsc-footer .right a:hover{ text-decoration:underline }
+.ufsc-footer .bar{ height:6px;background:var(--ufsc-blue) }
+
+/* ===== Utilidades ===== */
+.text-ufsc-blue{ color:var(--ufsc-blue) }
+
+/* ====== NAVBAR ====== */
+.ufsc-nav{
+  background: linear-gradient(180deg, var(--ufsc-blue) 0%, #02284f 100%);
+}
+
+/* marca + espaçamentos */
+.navbar-brand .brand-text{color:#fff; letter-spacing:.2px}
+.navbar-brand:hover{opacity:.95}
+
+/* Toggler sempre visível no tema escuro */
+.navbar[data-bs-theme="dark"] .navbar-toggler{
+  color:#fff
+}
+.navbar[data-bs-theme="dark"] .navbar-toggler-icon{
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Links com sublinhado animado nas interações */
+.ufsc-link{
+  position:relative; color:#fff !important; font-weight:600;
+}
+.ufsc-link::after{
+  content:""; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background:linear-gradient(90deg,var(--ufsc-yellow),#ffd84a);
+  transform:scaleX(0); transform-origin:left; transition:transform .18s ease;
+}
+.ufsc-link:hover::after, .ufsc-link:focus-visible::after, .navbar .nav-link.active.ufsc-link::after{
+  transform:scaleX(1);
+}
+.navbar .nav-link.active{color:#fff}
+
+/* Estado de foco acessível */
+.ufsc-link:focus-visible{
+  outline:2px solid #bfd9ff; outline-offset:2px; border-radius:4px;
+}

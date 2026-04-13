@@ -1,0 +1,148 @@
+/* ===== Paleta UFSC (claro) ===== */
+:root{
+  --ufsc-blue:#003366;
+  --ufsc-blue-2:#0b3d7a;
+  --ufsc-yellow:#ffcc00;
+
+  --ink:#0f172a;
+  --muted:#475569;
+  --surface:#ffffff;
+  --bg:#f7f9fc;
+  --line:#e5e9f2;
+}
+
+html,body{ overflow-x:hidden; background:var(--bg); color:var(--ink); }
+
+/* 90% da largura no desktop */
+.main-container{ max-width:90vw; margin:0 auto; }
+@media (min-width:1400px){ .main-container{ max-width:1320px; } }
+
+/* ===== Navbar clara (mesmo look da home) ===== */
+.ufsc-nav{ background:#ffffff; }
+.navbar-brand .brand-text{ color:var(--ufsc-blue); }
+.navbar .nav-link.ufsc-link{
+  color:var(--ufsc-blue) ; font-weight:600; position:relative;
+}
+.navbar .nav-link.ufsc-link::after{
+  content:""; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background:linear-gradient(90deg,var(--ufsc-yellow),#ffd84a);
+  transform:scaleX(0); transform-origin:left; transition:transform .18s ease;
+}
+.navbar .nav-link.ufsc-link:hover::after,
+.navbar .nav-link.ufsc-link.active::after{ transform:scaleX(1); }
+
+/* Dropdown claro */
+.ufsc-dropdown{
+  border:1px solid var(--line);
+  background:#fff;
+  box-shadow:0 12px 28px rgba(2,8,23,.08);
+  padding:.35rem; border-radius:12px;
+}
+.ufsc-dropdown .dropdown-item{
+  border-radius:8px; font-weight:600; color:#0b2240;
+}
+.ufsc-dropdown .dropdown-item:hover{ background:rgba(0,0,0,.04); }
+.ufsc-dropdown .dropdown-item.active,
+.ufsc-dropdown .dropdown-item:active{
+  background: rgba(255,204,0,.25); color:#0b2240;
+}
+
+/* ===== HERO (claro) ===== */
+.hero.hero-light{
+  background:#ffffff;
+  border-bottom:1px solid var(--line);
+  min-height: clamp(420px, 52vh, 620px);
+  display:flex; align-items:center;
+}
+.text-hero{ color:var(--muted); }
+
+.hero-card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:16px;
+}
+
+/* Badge institucional */
+.ufsc-badge{
+  display:inline-block; padding:.35rem .6rem; border-radius:999px;
+  background:rgba(255,204,0,.2); color:#6b5200; border:1px solid rgba(255,204,0,.55);
+  font-weight:700;
+}
+
+/* ===== Cards e blocos ===== */
+.sim-card, .info-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.sim-card:hover, .info-card:hover{
+  transform: translateY(-2px);
+  border-color: #cfd6e3;
+  box-shadow: 0 14px 28px rgba(2,8,23,.08);
+}
+.sim-card .card-title, .info-card .card-title{
+  color:var(--ufsc-blue); font-weight:800;
+}
+
+/* Links UFSC */
+.link-ufsc{ color:var(--ufsc-blue); text-decoration:none; font-weight:600; }
+.link-ufsc:hover{ text-decoration:underline; }
+
+/* ===== Rodapé claro ===== */
+.ufsc-footer{
+  background:#ffffff;
+  border-top:4px solid var(--ufsc-yellow);
+  color:#2a3b55;
+}
+.ufsc-footer-inner{
+  display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  padding:18px 0;
+}
+.ufsc-footer .logo{ font-weight:900;letter-spacing:1px;font-size:1.1rem; color:var(--ufsc-blue) }
+.ufsc-footer .name{ font-weight:700 }
+.ufsc-footer .dept{ color:#5b6b82 }
+.ufsc-footer .right a{ color:var(--ufsc-blue);text-decoration:none;font-weight:700 }
+.ufsc-footer .right a:hover{ text-decoration:underline }
+.ufsc-footer .bar{ height:6px;background:var(--ufsc-blue) }
+
+/* Utilidade */
+.text-ufsc-blue{ color:var(--ufsc-blue); }
+
+/* ====== NAVBAR ====== */
+.ufsc-nav{
+  background: linear-gradient(180deg, var(--ufsc-blue) 0%, #02284f 100%);
+}
+
+/* marca + espaçamentos */
+.navbar-brand .brand-text{color:#fff; letter-spacing:.2px}
+.navbar-brand:hover{opacity:.95}
+
+/* Toggler sempre visível no tema escuro */
+.navbar[data-bs-theme="dark"] .navbar-toggler{
+  color:#fff
+}
+.navbar[data-bs-theme="dark"] .navbar-toggler-icon{
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Links com sublinhado animado nas interações */
+.ufsc-link{
+  position:relative; color:#fff !important; font-weight:600;
+}
+.ufsc-link::after{
+  content:""; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background:linear-gradient(90deg,var(--ufsc-yellow),#ffd84a);
+  transform:scaleX(0); transform-origin:left; transition:transform .18s ease;
+}
+.ufsc-link:hover::after, .ufsc-link:focus-visible::after, .navbar .nav-link.active.ufsc-link::after{
+  transform:scaleX(1);
+}
+.navbar .nav-link.active{color:#fff}
+
+/* Estado de foco acessível */
+.ufsc-link:focus-visible{
+  outline:2px solid #bfd9ff; outline-offset:2px; border-radius:4px;
+}
+
+

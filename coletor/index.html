@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador — Coletor Solar Térmico com PID | UFSC</title>
+
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    crossorigin="anonymous"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+  >
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <style>
+    :root{
+      --ufsc-bg: #f7f9fc;
+      --ufsc-card: #ffffff;
+      --ufsc-ink: #0f172a;
+      --ufsc-ink2:#334155;
+      --ufsc-muted:#64748b;
+      --ufsc-line: rgba(15, 23, 42, .10);
+      --ufsc-line2: rgba(15, 23, 42, .06);
+      --ufsc-blue:#0b5aa7;
+      --ufsc-blue2:#2b78c5;
+      --ufsc-blue-soft: rgba(11,90,167,.06);
+      --ufsc-shadow: 0 10px 30px rgba(15,23,42,.08);
+      --ufsc-shadow2: 0 6px 18px rgba(15,23,42,.06);
+      --ufsc-radius: 16px;
+      --ufsc-yellow: #f2c230;
+    }
+
+    body.ufsc-body{
+      background: var(--ufsc-bg);
+      color: var(--ufsc-ink);
+    }
+
+    .main-container{
+      max-width: 1320px;
+    }
+
+    /* Navbar institucional */
+    .ufsc-topbar{
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      background:
+        radial-gradient(1200px 320px at 15% 0%, rgba(43,120,197,.10), transparent 60%),
+        radial-gradient(900px 260px at 85% 0%, rgba(11,90,167,.08), transparent 55%),
+        linear-gradient(180deg, #ffffff, #fbfcff);
+      border-bottom: 1px solid var(--ufsc-line);
+      backdrop-filter: blur(10px);
+    }
+
+    .ufsc-topbar-inner{
+      padding: .95rem 0 .8rem 0;
+    }
+
+    .ufsc-brand{
+      display:flex;
+      align-items:center;
+      gap:.95rem;
+      min-width: 280px;
+    }
+
+    .ufsc-logo{
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 16px rgba(15,23,42,.12));
+    }
+
+    .ufsc-headline{
+      margin: 0;
+      line-height: 1.08;
+      color: var(--ufsc-ink);
+      font-weight: 800;
+      font-size: 1.08rem;
+      letter-spacing: .01em;
+    }
+
+    .ufsc-subline{
+      margin: 0;
+      color: var(--ufsc-muted);
+      font-size: .83rem;
+    }
+
+    .ufsc-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:.65rem;
+      flex-wrap: wrap;
+    }
+
+    .ufsc-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      padding: .42rem .68rem;
+      border-radius: 999px;
+      border: 1px solid var(--ufsc-line);
+      background: rgba(11,90,167,.05);
+      color: var(--ufsc-ink2);
+      font-size: .78rem;
+      white-space: nowrap;
+      box-shadow: var(--ufsc-shadow2);
+    }
+
+    .ufsc-chip b{
+      color: var(--ufsc-ink);
+      font-weight: 800;
+    }
+
+    .ufsc-actions .btn{
+      border-radius: 12px;
+      padding: .46rem .78rem;
+      box-shadow: var(--ufsc-shadow2);
+    }
+
+    .ufsc-actions .btn-outline-primary{
+      border-color: rgba(11,90,167,.35);
+      color: var(--ufsc-blue);
+      background: rgba(255,255,255,.9);
+    }
+
+    .ufsc-actions .btn-outline-primary:hover{
+      background: rgba(11,90,167,.06);
+      border-color: rgba(11,90,167,.45);
+    }
+
+    .ufsc-clock{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: .85rem;
+      color: var(--ufsc-ink2);
+      padding: .46rem .7rem;
+      border-radius: 12px;
+      border: 1px solid var(--ufsc-line);
+      background: rgba(255,255,255,.85);
+      box-shadow: var(--ufsc-shadow2);
+      white-space: nowrap;
+    }
+
+    .ufsc-divider{
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ufsc-line2), transparent);
+      margin-top: .75rem;
+    }
+
+    /* Hero / intro */
+    .ufsc-hero{
+      border: 1px solid var(--ufsc-line);
+      background:
+        radial-gradient(850px 220px at 0% 0%, rgba(43,120,197,.07), transparent 60%),
+        linear-gradient(180deg, #ffffff, #fbfdff);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--ufsc-shadow);
+    }
+
+    .ufsc-hero-bar{
+      height: 6px;
+      background: linear-gradient(90deg, var(--ufsc-blue), var(--ufsc-blue2), var(--ufsc-yellow));
+    }
+
+    .ufsc-badge-soft{
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .42rem .8rem;
+      border-radius: 999px;
+      background: rgba(11,90,167,.08);
+      border: 1px solid rgba(11,90,167,.10);
+      color: var(--ufsc-blue);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .01em;
+    }
+
+    .ufsc-hero-title{
+      font-size: clamp(1.7rem, 3vw, 2.5rem);
+      line-height: 1.08;
+      font-weight: 800;
+      color: var(--ufsc-ink);
+      margin-bottom: .85rem;
+      max-width: 920px;
+    }
+
+    .ufsc-hero-text{
+      color: var(--ufsc-ink2);
+      font-size: 1rem;
+      line-height: 1.65;
+      max-width: 920px;
+      margin-bottom: 0;
+    }
+
+    .ufsc-highlight-card{
+      border: 1px solid var(--ufsc-line);
+      background: rgba(255,255,255,.92);
+      border-radius: 18px;
+      box-shadow: var(--ufsc-shadow2);
+      padding: 1rem;
+      height: 100%;
+    }
+
+    .ufsc-highlight-card small{
+      color: var(--ufsc-muted);
+      display: block;
+      margin-bottom: .25rem;
+    }
+
+    .ufsc-highlight-card strong{
+      color: var(--ufsc-ink);
+      font-size: 1.02rem;
+    }
+
+    /* Painéis */
+    .ufsc-panel{
+      border: 1px solid var(--ufsc-line);
+      border-radius: 18px;
+      background: var(--ufsc-card);
+      box-shadow: var(--ufsc-shadow2);
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .ufsc-panel .card-header{
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,250,252,.96));
+      border-bottom: 1px solid var(--ufsc-line2);
+      padding: 1rem 1.1rem .9rem;
+    }
+
+    .ufsc-panel .card-body{
+      padding: 1.1rem;
+    }
+
+    .ufsc-panel-title{
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--ufsc-ink);
+    }
+
+    .ufsc-panel-sub{
+      margin: .25rem 0 0 0;
+      color: var(--ufsc-muted);
+      font-size: .88rem;
+    }
+
+    .ufsc-soft-box{
+      border: 1px solid var(--ufsc-line2);
+      background: rgba(15,23,42,.018);
+      border-radius: 14px;
+      padding: .95rem 1rem;
+    }
+
+    .ufsc-soft-title{
+      font-size: .9rem;
+      font-weight: 800;
+      color: var(--ufsc-ink);
+      margin-bottom: .75rem;
+    }
+
+    .ufsc-note{
+      color: var(--ufsc-muted);
+      font-size: .88rem;
+    }
+
+    .ufsc-equation-box{
+      border: 1px solid rgba(11,90,167,.12);
+      background: rgba(11,90,167,.04);
+      border-radius: 16px;
+      padding: 1rem 1.15rem;
+    }
+
+    .ufsc-equation-label{
+      display: inline-block;
+      margin-bottom: .4rem;
+      padding: .28rem .6rem;
+      border-radius: 999px;
+      background: rgba(11,90,167,.09);
+      color: var(--ufsc-blue);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+
+    .ufsc-mini-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: .75rem;
+    }
+
+    .ufsc-mini-card{
+      border: 1px solid var(--ufsc-line2);
+      border-radius: 14px;
+      padding: .85rem;
+      background: rgba(255,255,255,.82);
+    }
+
+    .ufsc-mini-card small{
+      display:block;
+      color: var(--ufsc-muted);
+      margin-bottom: .2rem;
+    }
+
+    .ufsc-mini-card strong{
+      color: var(--ufsc-ink);
+      font-size: .98rem;
+    }
+
+    /* KPIs */
+    .ufsc-kpi{
+      border: 1px solid var(--ufsc-line);
+      border-radius: 16px;
+      padding: .9rem;
+      background: linear-gradient(180deg, #ffffff, #fbfcfe);
+      box-shadow: var(--ufsc-shadow2);
+      height: 100%;
+    }
+
+    .ufsc-kpi-label{
+      font-size: .76rem;
+      color: var(--ufsc-muted);
+      margin-bottom: .28rem;
+    }
+
+    .ufsc-kpi-value{
+      font-size: 1.36rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--ufsc-ink);
+      margin: 0;
+    }
+
+    .ufsc-stats-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: .75rem;
+      margin-top: .8rem;
+    }
+
+    .ufsc-stat{
+      border: 1px solid var(--ufsc-line2);
+      background: rgba(15,23,42,.02);
+      border-radius: 14px;
+      padding: .8rem .9rem;
+      color: var(--ufsc-ink2);
+      font-size: .94rem;
+    }
+
+    .ufsc-stat strong{
+      color: var(--ufsc-ink);
+    }
+
+    /* Charts */
+    .ufsc-chart-card canvas{
+      max-height: 290px;
+    }
+
+    /* Footer */
+    .ufsc-footer{
+      margin-top: 2.3rem;
+      background:
+        radial-gradient(1200px 320px at 15% 0%, rgba(43,120,197,.08), transparent 60%),
+        radial-gradient(900px 260px at 85% 0%, rgba(11,90,167,.06), transparent 55%),
+        linear-gradient(180deg, #ffffff, #f3f6fb);
+      border-top: 1px solid var(--ufsc-line);
+      color: var(--ufsc-ink2);
+    }
+
+    .ufsc-footer-inner{
+      padding: 2rem 0 1.2rem 0;
+    }
+
+    .ufsc-foot-card{
+      border: 1px solid var(--ufsc-line);
+      background: rgba(255,255,255,.92);
+      border-radius: 18px;
+      padding: 1rem;
+      box-shadow: var(--ufsc-shadow2);
+      height: 100%;
+    }
+
+    .ufsc-footer h6{
+      color: var(--ufsc-ink);
+      font-weight: 800;
+      margin-bottom: .65rem;
+      letter-spacing: .01em;
+    }
+
+    .ufsc-footer a{
+      color: var(--ufsc-blue);
+      text-decoration: none;
+    }
+
+    .ufsc-footer a:hover{
+      text-decoration: underline;
+    }
+
+    .ufsc-foot-meta{
+      display:grid;
+      gap:.35rem;
+      font-size: .92rem;
+      color: var(--ufsc-ink2);
+    }
+
+    .ufsc-foot-meta .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: .88rem;
+      color: var(--ufsc-ink2);
+    }
+
+    .ufsc-footer-bottom{
+      border-top: 1px solid var(--ufsc-line);
+      padding: 1rem 0;
+      font-size: .88rem;
+      color: var(--ufsc-muted);
+    }
+
+    .ufsc-footer-bottom .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:.45rem;
+      padding: .28rem .6rem;
+      border-radius: 999px;
+      border: 1px solid var(--ufsc-line);
+      background: rgba(11,90,167,.05);
+      color: var(--ufsc-ink2);
+    }
+
+    .ufsc-hidden-input{
+      position: absolute !important;
+      left: -9999px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .hidden{
+      display: none !important;
+    }
+
+    @media (max-width: 991.98px){
+      .ufsc-mini-grid{
+        grid-template-columns: 1fr;
+      }
+
+      .ufsc-stats-grid{
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 576px){
+      .ufsc-brand{ min-width: 0; }
+      .ufsc-logo{ width: 42px; height: 42px; }
+      .ufsc-headline{ font-size: 1rem; }
+      .ufsc-subline{ font-size: .78rem; }
+      .ufsc-actions .btn{ padding: .44rem .62rem; }
+    }
+  </style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.renderMathInElement) {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "\\[", right: "\\]", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false }
+        ],
+        throwOnError: false
+      });
+    }
+  });
+</script>
+</head>
+
+<body class="ufsc-body">
+  <header class="ufsc-topbar">
+    <div class="container-fluid main-container ufsc-topbar-inner">
+      <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <div class="ufsc-brand">
+          <img
+            class="ufsc-logo"
+            src="https://identidade.ufsc.br/files/2017/10/vertical_sigla_fundo_claro.png"
+            alt="Brasão UFSC"
+            loading="eager"
+            referrerpolicy="no-referrer"
+          />
+          <div>
+            <p class="ufsc-headline">Simulador — Coletor Solar Térmico com PID</p>
+            <p class="ufsc-subline">Engenharia de Controle e Automação • Simulação de Sistemas Térmicos</p>
+          </div>
+        </div>
+
+        <div class="ufsc-actions">
+          <span class="ufsc-chip d-none d-md-inline-flex">
+            <span>Status:</span> <b id="statusMsgTop">Pronto</b>
+          </span>
+
+          <a class="btn btn-outline-primary btn-sm" href="readme.html" target="_blank" rel="noopener">
+            Documentação
+          </a>
+
+          <span class="ufsc-clock d-none d-md-inline-flex" id="clockNow">—</span>
+        </div>
+      </div>
+
+      <div class="ufsc-divider"></div>
+    </div>
+  </header>
+
+  <main class="container-fluid main-container my-4">
+    <section class="ufsc-hero mb-4">
+      <div class="ufsc-hero-bar"></div>
+      <div class="p-4 p-lg-5">
+        <div class="row g-4 align-items-center">
+          <div class="col-lg-8">
+            <span class="ufsc-badge-soft mb-3">Simulação acadêmica • Modelo dinâmico térmico</span>
+            <h1 class="ufsc-hero-title">
+              Plataforma de simulação do comportamento térmico de um coletor solar com controle de vazão
+            </h1>
+            <p class="ufsc-hero-text">
+              Interface desenvolvida para análise dinâmica da temperatura do coletor, influência da irradiância solar,
+              temperatura ambiente, temperatura de entrada do fluido e atuação de um controlador PID sobre a vazão.
+            </p>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="ufsc-highlight-card">
+              <small>Projeto</small>
+              <strong>Coletor Solar com PID</strong>
+              <hr class="my-3">
+              <small>Desenvolvimento</small>
+              <strong>Davi de Lima Rosa</strong>
+              <hr class="my-3">
+              <small>Supervisão</small>
+              <strong>Marcus V. Americano da Costa</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="ufsc-panel card">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Modelo matemático da simulação</h2>
+            <p class="ufsc-panel-sub">
+              A dinâmica principal do coletor utiliza a Equação (11), com temperatura de entrada simplificada para representar rotatividade do fluido.
+            </p>
+          </div>
+          <div class="card-body">
+            <div class="ufsc-equation-box">
+              <span class="ufsc-equation-label">Equação 11</span>
+              <div class="fs-5">
+                $$
+                \frac{dT_c}{dt}
+                =
+                \frac{A_c \tau \eta_0}{C} I
+                -
+                \frac{U_L A_c}{C}(T_{av} - T_a)
+                +
+                \frac{F_c}{V}(T_{in} - T_c)
+                $$
+              </div>
+            </div>
+
+            <div class="ufsc-mini-grid mt-3">
+              <div class="ufsc-mini-card">
+                <small>Ganho solar</small>
+                <strong>\(\frac{A_c \tau \eta_0}{C}I\)</strong>
+              </div>
+              <div class="ufsc-mini-card">
+                <small>Perda térmica</small>
+                <strong>\(\frac{U_L A_c}{C}(T_{av}-T_a)\)</strong>
+              </div>
+              <div class="ufsc-mini-card">
+                <small>Influência do escoamento</small>
+                <strong>\(\frac{F_c}{V}(T_{in}-T_c)\)</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+    <div class="row g-3">
+
+
+      <div class="col-12">
+        <div class="ufsc-panel card">
+          <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+            <div>
+              <h2 class="ufsc-panel-title mb-1">Controle da execução</h2>
+              <p class="ufsc-panel-sub mb-0">
+                Ajuste parâmetros, inicie a simulação e reconfigure as constantes do coletor conforme o cenário de estudo.
+              </p>
+            </div>
+                      <div>
+      <img class="col-12" src="image.png" alt="imagem">
+    </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button id="constBtn" class="btn btn-outline-secondary">Constantes do Coletor</button>
+              <button id="resetBtn" class="btn btn-outline-danger">Resetar</button>
+              <button id="startBtn" class="btn btn-primary">Iniciar (Tempo Real)</button>
+            </div>
+          </div>
+          <div class="card-footer small text-muted">
+            <span id="statusMsg">Pronto</span>
+            <span class="mx-2">•</span>
+            <span>Tempo real: pausar/retomar mantém o estado atual. Resetar reinicia completamente a simulação.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="ufsc-panel card h-100">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Modo temporal</h2>
+            <p class="ufsc-panel-sub">Escolha entre operação contínua em tempo real ou varredura rápida em tempo simulado.</p>
+          </div>
+          <div class="card-body">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="timeMode" id="tmReal" value="real" checked>
+              <label class="form-check-label" for="tmReal">Tempo real (contínuo)</label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="timeMode" id="tmSim" value="sim">
+              <label class="form-check-label" for="tmSim">Tempo simulado (rápido)</label>
+            </div>
+
+            <div id="simulatedBlock" class="mt-3 hidden">
+              <div class="ufsc-soft-box">
+                <div class="ufsc-soft-title">Janela de simulação</div>
+
+                <div class="mb-3">
+                  <label class="form-label text-muted small" for="simStart">Início (HH:MM)</label>
+                  <input id="simStart" class="form-control" type="time" value="08:00" step="60">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label text-muted small" for="simEnd">Fim (HH:MM)</label>
+                  <input id="simEnd" class="form-control" type="time" value="18:00" step="60">
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted small" for="simStep">Passo de amostragem (s)</label>
+                  <input id="simStep" class="form-control" type="number" min="1" max="3600" step="1" value="60">
+                  <div class="form-text">Eixo X em HH:MM ou HH:MM:SS quando o passo for menor que 60 s.</div>
+                </div>
+
+                <div class="form-check form-switch mt-3">
+                  <input class="form-check-input" type="checkbox" id="fastRun" checked>
+                  <label class="form-check-label" for="fastRun">Modo rápido (calcula tudo e plota ao final)</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="ufsc-panel card h-100">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Entradas do processo</h2>
+            <p class="ufsc-panel-sub">Defina as perturbações externas e as condições iniciais do sistema térmico.</p>
+          </div>
+          <div class="card-body">
+            <div class="ufsc-soft-box">
+              <div class="ufsc-soft-title">Condições do ensaio</div>
+
+              <div class="row mb-3 align-items-center">
+                <label for="irr" class="col-sm-5 col-form-label text-muted">Irradiação solar (W/m²)</label>
+                <div class="col-sm-5">
+                  <input id="irr" type="range" min="0" max="1400" step="10" value="800" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="irr_val" class="fw-bold">800</span>
+                </div>
+              </div>
+
+              <div class="row mb-3 align-items-center">
+                <label for="ta" class="col-sm-5 col-form-label text-muted">Temperatura ambiente \(T_a\) (°C)</label>
+                <div class="col-sm-5">
+                  <input id="ta" type="range" min="-5" max="60" step="0.5" value="25" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="ta_val" class="fw-bold">25.0</span>
+                </div>
+              </div>
+
+              <div class="row align-items-center">
+                <label for="vaz" class="col-sm-5 col-form-label text-muted">Vazão inicial (%)</label>
+                <div class="col-sm-5">
+                  <input id="vaz" type="range" min="10" max="100" step="1" value="50" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="vaz_val" class="fw-bold">50%</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="ufsc-note mt-3 mb-0">
+              A temperatura de entrada \(T_{in}\) é tratada de forma simplificada para gerar comportamento mais rotativo, sem efeito dominante de acúmulo.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="ufsc-panel card h-100">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Controlador PID</h2>
+            <p class="ufsc-panel-sub">Ajuste a referência térmica e os ganhos de atuação do controlador.</p>
+          </div>
+          <div class="card-body">
+            <div class="ufsc-soft-box">
+              <div class="ufsc-soft-title">Parâmetros de controle</div>
+
+              <div class="row mb-3 align-items-center">
+                <label for="ref" class="col-sm-5 col-form-label text-muted">Referência térmica (°C)</label>
+                <div class="col-sm-5">
+                  <input id="ref" type="range" min="10" max="95" step="0.5" value="45" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="ref_val" class="fw-bold">45.0</span>
+                </div>
+              </div>
+
+              <div class="row mb-2 align-items-center">
+                <label for="kp" class="col-sm-5 col-form-label text-muted">Ganho proporcional \(K_p\)</label>
+                <div class="col-sm-5">
+                  <input id="kp" type="range" min="0" max="10.0" step="0.05" value="0.50" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="kp_val" class="fw-bold">0.50</span>
+                </div>
+              </div>
+
+              <div class="row mb-2 align-items-center">
+                <label for="ki" class="col-sm-5 col-form-label text-muted">Ganho integral \(K_i\)</label>
+                <div class="col-sm-5">
+                  <input id="ki" type="range" min="0" max="5.0" step="0.01" value="0.10" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="ki_val" class="fw-bold">0.10</span>
+                </div>
+              </div>
+
+              <div class="row mb-2 align-items-center">
+                <label for="kd" class="col-sm-5 col-form-label text-muted">Ganho derivativo \(K_d\)</label>
+                <div class="col-sm-5">
+                  <input id="kd" type="range" min="0" max="2.0" step="0.005" value="0.125" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="kd_val" class="fw-bold">0.125</span>
+                </div>
+              </div>
+
+              <div class="row align-items-center">
+                <label for="tf" class="col-sm-5 col-form-label text-muted">Filtro derivativo \(T_f\) (s)</label>
+                <div class="col-sm-5">
+                  <input id="tf" type="range" min="0" max="10.0" step="0.1" value="0" class="form-range">
+                </div>
+                <div class="col-sm-2 text-end">
+                  <span id="tf_val" class="fw-bold">0.0</span>
+                </div>
+              </div>
+
+              <div class="form-text mt-3">
+                Dica: se o sistema oscilar excessivamente, aumente \(T_f\) e reduza \(K_d\).
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="ufsc-panel card h-100">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Perfil temporal por CSV</h2>
+            <p class="ufsc-panel-sub">Importe perfis de irradiância e temperatura ambiente no modo simulado.</p>
+          </div>
+          <div class="card-body">
+            <p class="ufsc-note mb-3">
+              Formato esperado: <code>HH:MM, irradiacao, temperatura</code><br>
+              Exemplo: <code>12:30, 750, 26.5</code>
+            </p>
+
+            <input id="csvFile" type="file" accept=".csv,text/csv" class="form-control">
+
+            <div class="ufsc-stats-grid mt-3">
+              <div class="ufsc-stat">
+                <strong>Pontos CSV:</strong> <span id="csvCount">0</span>
+              </div>
+              <div class="ufsc-stat">
+                <strong>Faixa CSV:</strong> <span id="csvSpan">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="ufsc-panel card h-100">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Indicadores operacionais</h2>
+            <p class="ufsc-panel-sub">Resumo das principais variáveis térmicas e de controle do sistema.</p>
+          </div>
+          <div class="card-body">
+            <div class="row row-cols-2 row-cols-md-5 g-2">
+              <div class="col">
+                <div class="ufsc-kpi">
+                  <div class="ufsc-kpi-label">Eficiência \(\eta\)</div>
+                  <p class="ufsc-kpi-value" id="eta">—</p>
+                </div>
+              </div>
+              <div class="col">
+                <div class="ufsc-kpi">
+                  <div class="ufsc-kpi-label">ΔT</div>
+                  <p class="ufsc-kpi-value" id="dT">—</p>
+                </div>
+              </div>
+              <div class="col">
+                <div class="ufsc-kpi">
+                  <div class="ufsc-kpi-label">Vazão (L/min)</div>
+                  <p class="ufsc-kpi-value" id="mdot">—</p>
+                </div>
+              </div>
+              <div class="col">
+                <div class="ufsc-kpi">
+                  <div class="ufsc-kpi-label">Referência (°C)</div>
+                  <p class="ufsc-kpi-value" id="refNow">—</p>
+                </div>
+              </div>
+              <div class="col">
+                <div class="ufsc-kpi">
+                  <div class="ufsc-kpi-label">Erro \(T_{out}-Ref\)</div>
+                  <p class="ufsc-kpi-value" id="errNow">—</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="ufsc-stats-grid">
+              <div class="ufsc-stat"><strong>Temperatura de entrada \(T_{in}\):</strong> <span id="Tin">—</span></div>
+              <div class="ufsc-stat"><strong>Temperatura de saída \(T_{out}\):</strong> <span id="Tout">—</span></div>
+              <div class="ufsc-stat"><strong>Temperatura do coletor \(T_p\):</strong> <span id="Tp">—</span></div>
+              <div class="ufsc-stat"><strong>Vazão relativa (%):</strong> <span id="vazao_pct">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="ufsc-panel card ufsc-chart-card">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Temperaturas do sistema</h2>
+            <p class="ufsc-panel-sub">Comparação entre entrada, saída, coletor e referência.</p>
+          </div>
+          <div class="card-body">
+            <canvas id="chartTemp" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="ufsc-panel card ufsc-chart-card">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Vazão relativa</h2>
+            <p class="ufsc-panel-sub">Atuação do controlador sobre a vazão nominal.</p>
+          </div>
+          <div class="card-body">
+            <canvas id="chartVazao" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="ufsc-panel card ufsc-chart-card">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Potências térmicas</h2>
+            <p class="ufsc-panel-sub">Ganho solar, perdas térmicas e potência útil do fluido.</p>
+          </div>
+          <div class="card-body">
+            <canvas id="chartPower" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="ufsc-panel card ufsc-chart-card">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Erro de controle</h2>
+            <p class="ufsc-panel-sub">Diferença entre a temperatura de saída e a referência do controlador.</p>
+          </div>
+          <div class="card-body">
+            <canvas id="chartErro" height="140"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="ufsc-panel card ufsc-chart-card">
+          <div class="card-header">
+            <h2 class="ufsc-panel-title">Perfil de irradiância e temperatura ambiente</h2>
+            <p class="ufsc-panel-sub">Visualização simultânea das perturbações externas do sistema.</p>
+          </div>
+          <div class="card-body">
+            <canvas id="chartIrrTa" height="120"></canvas>
+            <small class="text-muted">Eixo esquerdo: irradiância solar (W/m²). Eixo direito: temperatura ambiente (°C).</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="constModal" tabindex="-1" aria-labelledby="constTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="constTitle">Constantes do Coletor</h1>
+          <button type="button" class="btn-close" id="closeConst" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="c_Ac" class="form-label small text-muted">A<sub>c</sub> (m²)</label>
+              <input id="c_Ac" type="number" step="0.01" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_U" class="form-label small text-muted">U (W/m²·K)</label>
+              <input id="c_U" type="number" step="0.1" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_tau" class="form-label small text-muted">τ·α (—)</label>
+              <input id="c_tau" type="number" step="0.01" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_Nseg" class="form-label small text-muted">N<sub>seg</sub> (—)</label>
+              <input id="c_Nseg" type="number" step="1" min="1" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_Vcol" class="form-label small text-muted">V<sub>col</sub> (m³)</label>
+              <input id="c_Vcol" type="number" step="0.0005" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_mp" class="form-label small text-muted">m<sub>p</sub> (kg)</label>
+              <input id="c_mp" type="number" step="0.1" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_cpp" class="form-label small text-muted">c<sub>p,p</sub> (J/kg·K)</label>
+              <input id="c_cpp" type="number" step="10" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_hA" class="form-label small text-muted">hA<sub>total</sub> (W/K)</label>
+              <input id="c_hA" type="number" step="1" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_UAt" class="form-label small text-muted">UA<sub>tubos,total</sub> (W/K)</label>
+              <input id="c_UAt" type="number" step="0.5" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_Vloop" class="form-label small text-muted">V<sub>loop</sub> (m³)</label>
+              <input id="c_Vloop" type="number" step="0.0005" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_UAl" class="form-label small text-muted">UA<sub>loop</sub> (W/K)</label>
+              <input id="c_UAl" type="number" step="0.5" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+              <label for="c_dt" class="form-label small text-muted">Δt numérico (s)</label>
+              <input id="c_dt" type="number" step="0.05" list="dtPresets" class="form-control">
+              <datalist id="dtPresets">
+                <option value="0.25"></option>
+                <option value="0.5"></option>
+                <option value="1"></option>
+                <option value="1.5"></option>
+              </datalist>
+              <div class="form-text">Sugestões usuais: 0.25, 0.5 ou 1.0 s.</div>
+            </div>
+
+            <div class="col-md-6 position-relative">
+              <label for="c_vazN_ui" class="form-label small text-muted">Vazão nominal (L/min)</label>
+              <input id="c_vazN_ui" type="number" step="0.01" class="form-control" inputmode="decimal">
+              <div class="form-text">A interface mostra vazão em L/min, mantendo compatibilidade interna com o simulador.</div>
+              <input id="c_vazN" type="number" step="0.001" class="form-control ufsc-hidden-input" aria-hidden="true" tabindex="-1">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="cancelConst" type="button" class="btn btn-secondary">Cancelar</button>
+          <button id="applyConst" type="button" class="btn btn-primary">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden">Em breve…</div>
+
+  <footer class="ufsc-footer">
+    <div class="container-fluid main-container ufsc-footer-inner">
+      <div class="row g-3 align-items-stretch">
+        <div class="col-lg-5">
+          <div class="ufsc-foot-card">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <img
+                class="ufsc-logo"
+                style="width:44px;height:44px"
+                src="https://identidade.ufsc.br/wp-content/themes/brasilGovInterno/img/brasao_site_ufsc.svg?ver=1768915243"
+                alt="Brasão UFSC"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+              />
+              <div>
+                <h6 class="mb-1">Universidade Federal de Santa Catarina</h6>
+                <div class="text-muted small">Engenharia de Controle e Automação • Simulação de Sistemas Térmicos</div>
+              </div>
+            </div>
+
+            <div class="ufsc-foot-meta mt-3">
+              <div><span class="text-muted">Projeto:</span> Simulador do Coletor Solar com PID</div>
+              <div><span class="text-muted">Autor:</span> <b style="color:var(--ufsc-ink)">Davi de Lima Rosa</b></div>
+              <div><span class="text-muted">Supervisão:</span> Marcus V. Americano da Costa</div>
+              <div class="mono"><span class="text-muted">Versão:</span> Rev1 • <span class="text-muted">Ano:</span> 2026</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="ufsc-foot-card">
+            <h6>Recursos</h6>
+            <div class="d-grid gap-2">
+              <a href="readme.html" target="_blank" rel="noopener">Documentação (README)</a>
+              <a href="#" data-coming-soon>Exportar gráficos</a>
+              <a href="#" data-coming-soon>Baixar dados (CSV)</a>
+              <a href="#" data-coming-soon>Acessibilidade</a>
+            </div>
+
+            <div class="mt-3 small text-muted">
+              No modo simulado, é possível importar um CSV com perfis de irradiância e temperatura ambiente.
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3">
+          <div class="ufsc-foot-card">
+            <h6>Informações</h6>
+            <div class="d-grid gap-2">
+              <a href="#" data-coming-soon>Política de privacidade</a>
+              <a href="#" data-coming-soon>Termos de uso acadêmico</a>
+              <a href="#" data-coming-soon>Contato do laboratório</a>
+            </div>
+
+            <div class="mt-3 small text-muted">
+              Aplicação destinada a fins didáticos e acadêmicos.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ufsc-footer-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>© 2026 UFSC — Uso acadêmico</div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="pill">Simulação no navegador</span>
+          <span class="pill">Modelo térmico + PID</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const a = document.getElementById("statusMsg");
+      const b = document.getElementById("statusMsgTop");
+      if (!a || !b) return;
+
+      const sync = () => { b.textContent = (a.textContent || "Pronto").trim(); };
+      sync();
+
+      const obs = new MutationObserver(sync);
+      obs.observe(a, { childList: true, subtree: true, characterData: true });
+    });
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const KG_S_TO_L_MIN = 60;
+
+      const mdotEl = document.getElementById("mdot");
+      let mdotRaw = null;
+
+      const parseNumber = (txt) => {
+        const t = String(txt || "").trim();
+        if (!t || t === "—") return null;
+        const normalized = t.replace(/\./g, "").replace(",", ".");
+        const n = Number(normalized);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const format = (n, dec = 2) => {
+        return n.toLocaleString("pt-BR", {
+          minimumFractionDigits: dec,
+          maximumFractionDigits: dec
+        });
+      };
+
+      const renderMdotAsLmin = () => {
+        if (!mdotEl || mdotRaw == null) return;
+        const lmin = mdotRaw * KG_S_TO_L_MIN;
+        mdotEl.textContent = format(lmin, 2);
+      };
+
+      if (mdotEl) {
+        const obsM = new MutationObserver(() => {
+          const n = parseNumber(mdotEl.textContent);
+          if (n == null) return;
+          mdotRaw = n;
+          renderMdotAsLmin();
+        });
+
+        obsM.observe(mdotEl, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+
+        const n0 = parseNumber(mdotEl.textContent);
+        if (n0 != null) {
+          mdotRaw = n0;
+          renderMdotAsLmin();
+        }
+      }
+
+      const btnOpen = document.getElementById("constBtn");
+      const btnApply = document.getElementById("applyConst");
+      const btnCancel = document.getElementById("cancelConst");
+      const btnClose = document.getElementById("closeConst");
+
+      const real = document.getElementById("c_vazN");
+      const ui = document.getElementById("c_vazN_ui");
+
+      const syncUiFromReal = () => {
+        if (!real || !ui) return;
+        const v = parseFloat(String(real.value || "").replace(",", "."));
+        if (!Number.isFinite(v)) {
+          ui.value = "";
+          return;
+        }
+        ui.value = (v * KG_S_TO_L_MIN).toFixed(2);
+      };
+
+      const syncRealFromUi = () => {
+        if (!real || !ui) return;
+        const v = parseFloat(String(ui.value || "").replace(",", "."));
+        if (!Number.isFinite(v)) return;
+        real.value = (v / KG_S_TO_L_MIN).toFixed(6);
+      };
+
+      if (btnOpen) btnOpen.addEventListener("click", () => setTimeout(syncUiFromReal, 0));
+      if (btnApply) btnApply.addEventListener("click", syncRealFromUi);
+
+      const revert = () => setTimeout(syncUiFromReal, 0);
+      if (btnCancel) btnCancel.addEventListener("click", revert);
+      if (btnClose) btnClose.addEventListener("click", revert);
+
+      if (real) {
+        const obsR = new MutationObserver(syncUiFromReal);
+        obsR.observe(real, { attributes: true, attributeFilter: ["value"] });
+        syncUiFromReal();
+      }
+    });
+  </script>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="pt-br" data-bs-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sobre — Laboratório de Simulação • UFSC</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+
+  <!-- CSS da página Sobre -->
+  <link rel="stylesheet" href="sobre.css" />
+</head>
+<body>
+
+  <!-- NAVBAR (mesma identidade visual da home) -->
+  <nav class="navbar navbar-expand-lg ufsc-nav sticky-top border-bottom border-warning border-4" data-bs-theme="light">
+    <div class="container-fluid main-container">
+      <a class="navbar-brand d-flex align-items-center fw-bold" href="../index.html">
+        <img src="../logoufsc.png" alt="Logo UFSC" height="42" class="me-2">
+        <span class="brand-text">Laboratório de Simulação</span>
+      </a>
+
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <li class="nav-item"><a class="nav-link ufsc-link" href="../index.html">Home</a></li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle ufsc-link" href="#" role="button" data-bs-toggle="dropdown">Simulações</a>
+            <ul class="dropdown-menu dropdown-menu-end ufsc-dropdown">
+              <li><a class="dropdown-item" href="../coletor/">Coletor Solar (PID)</a></li>
+              <li><a class="dropdown-item" href="#" data-coming="Caldeira">Caldeira</a></li>
+              <li><a class="dropdown-item" href="#" data-coming="Eletrolizador">Eletrolizador</a></li>
+            </ul>
+          </li>
+          <li class="nav-item"><a class="nav-link ufsc-link active" href="./">Sobre</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero hero-light py-5">
+    <div class="container-fluid main-container">
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="../index.html">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Sobre</li>
+        </ol>
+      </nav>
+
+      <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+          <span class="badge ufsc-badge mb-3">INCT • Bolsas de Iniciação Científica</span>
+          <h1 class="display-6 fw-bold text-ufsc-blue">Sobre o Laboratório de Simulação</h1>
+          <p class="lead text-hero">
+            Iniciativa da Engenharia de Controle e Automação (UFSC) para ensino e pesquisa em sistemas
+            térmicos e energéticos, com foco em modelagem, controle e integração de dados.
+          </p>
+        </div>
+        <div class="col-lg-5">
+          <div class="card hero-card shadow-sm">
+            <div class="card-body p-4">
+              <h5 class="card-title mb-2">Coordenação</h5>
+              <p class="mb-1"><b>Prof. Marcos Vinícius Americano</b></p>
+              <p class="text-muted mb-0">Universidade Federal de Santa Catarina • Programa INCT</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="container-fluid main-container py-5">
+    <!-- Missão e Objetivos -->
+    <section class="mb-5">
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <div class="card info-card h-100">
+            <div class="card-body p-4">
+              <h5 class="card-title">Missão</h5>
+              <p class="text-muted mb-2">
+                Democratizar o acesso a simuladores web responsivos para disciplinas e projetos de pesquisa,
+                conectando modelagem matemática, controle (PID/MPC) e dados reais.
+              </p>
+              <h6 class="mt-3">Objetivos</h6>
+              <ul class="mb-0">
+                <li>Desenvolver simuladores acessíveis via navegador (desktop e mobile);</li>
+                <li>Explorar estratégias de controle e visualização de dados;</li>
+                <li>Disponibilizar perfis externos via CSV e reprodutibilidade dos experimentos.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="card info-card h-100">
+            <div class="card-body p-4">
+              <h5 class="card-title">Âmbitos</h5>
+              <ul class="mb-2">
+                <li>Sistemas Térmicos (coletores solares, caldeiras);</li>
+                <li>Processos Eletroquímicos (eletrolisadores);</li>
+                <li>Integração com energias renováveis e instrumentação.</li>
+              </ul>
+              <span class="badge ufsc-badge">UFSC • INCT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Equipe -->
+    <section class="mb-5">
+      <h2 class="h4 fw-bold text-ufsc-blue mb-3">Equipe</h2>
+      <div class="row g-4">
+        <!-- Davi -->
+        <div class="col-12 col-md-6 col-lg-3">
+          <div class="card sim-card h-100">
+            <div class="card-body">
+              <h5 class="card-title mb-1">Davi de Lima Rosa</h5>
+              <p class="text-muted small mb-2">Bolsista — Coletor Solar (PID)</p>
+              <p class="mb-0">Modelagem térmica segmentada, controle por vazão e visualização de KPIs.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Renato -->
+        <div class="col-12 col-md-6 col-lg-3">
+          <div class="card sim-card h-100">
+            <div class="card-body">
+              <h5 class="card-title mb-1">Renato</h5>
+              <p class="text-muted small mb-2">Bolsista — Eletrolizador</p>
+              <p class="mb-0">Eficiência, consumo energético e integração com renováveis. <a href="#" data-coming="Eletrolizador">Ver status</a></p>
+            </div>
+          </div>
+        </div>
+        <!-- Henrique -->
+        <div class="col-12 col-md-6 col-lg-3">
+          <div class="card sim-card h-100">
+            <div class="card-body">
+              <h5 class="card-title mb-1">Henrique</h5>
+              <p class="text-muted small mb-2">Bolsista — Eletrolizador</p>
+              <p class="mb-0">Arquitetura do simulador e ajustes de UI. <a href="#" data-coming="Eletrolizador">Ver status</a></p>
+            </div>
+          </div>
+        </div>
+        <!-- Emanuelle -->
+        <div class="col-12 col-md-6 col-lg-3">
+          <div class="card sim-card h-100">
+            <div class="card-body">
+              <h5 class="card-title mb-1">Emanuelle</h5>
+              <p class="text-muted small mb-2">Bolsista — Caldeira</p>
+              <p class="mb-0">Balanços de massa/energia e dinâmicas de nível/pressão. <a href="#" data-coming="Caldeira">Ver status</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tecnologias e Arquitetura -->
+    <section class="mb-5">
+      <h2 class="h4 fw-bold text-ufsc-blue mb-3">Tecnologias</h2>
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="card info-card h-100">
+            <div class="card-body p-4">
+              <h6 class="text-uppercase text-muted small">Stack</h6>
+              <ul class="mb-0">
+                <li>HTML5, CSS3 (Bootstrap 5 + CSS custom UFSC)</li>
+                <li>JavaScript (modelo numérico, PID/MPC)</li>
+                <li>Chart.js para gráficos</li>
+                <li>Perfil externo via CSV (interp. linear por horário)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card info-card h-100">
+            <div class="card-body p-4">
+              <h6 class="text-uppercase text-muted small">Arquitetura</h6>
+              <ul class="mb-0">
+                <li>SPA leve por página de simulador</li>
+                <li>Execução em lote (tempo simulado) e loop contínuo (tempo real)</li>
+                <li>Componentes reusáveis de UI (modais, toasts) e estilos UFSC</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQs -->
+    <section class="mb-5">
+      <h2 class="h4 fw-bold text-ufsc-blue mb-3">Perguntas Frequentes</h2>
+      <div class="accordion" id="faq">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q1">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#a1" aria-expanded="true" aria-controls="a1">
+              Posso usar dados próprios (CSV) nos simuladores?
+            </button>
+          </h2>
+          <div id="a1" class="accordion-collapse collapse show" aria-labelledby="q1" data-bs-parent="#faq">
+            <div class="accordion-body">
+              Sim. Os simuladores aceitam arquivos CSV com horários e perfis (ex.: irradiação, temperatura).
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q2">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2" aria-expanded="false" aria-controls="a2">
+              O controle é sempre PID?
+            </button>
+          </h2>
+          <div id="a2" class="accordion-collapse collapse" aria-labelledby="q2" data-bs-parent="#faq">
+            <div class="accordion-body">
+              O PID é o padrão. Estamos avaliando extensões (ex.: MPC) conforme o projeto avança.
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="q3">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3" aria-expanded="false" aria-controls="a3">
+              Como colaborar com o laboratório?
+            </button>
+          </h2>
+          <div id="a3" class="accordion-collapse collapse" aria-labelledby="q3" data-bs-parent="#faq">
+            <div class="accordion-body">
+              Procure a coordenação do curso ou entre em contato com a equipe do laboratório.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contato -->
+    <section>
+      <div class="card info-card">
+        <div class="card-body p-4">
+          <h5 class="card-title">Contato</h5>
+          <p class="mb-2 text-muted">Universidade Federal de Santa Catarina — Engenharia de Controle e Automação</p>
+          <div class="row g-2 small">
+            <div class="col-md-4"><b>E-mail:</b> <a href="#" class="link-ufsc" data-coming="Contato">contato@ufsc.br</a></div>
+            <div class="col-md-4"><b>Campus:</b> Florianópolis — SC</div>
+            <div class="col-md-4"><b>Programa:</b> INCT</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- RODAPÉ -->
+  <footer class="ufsc-footer mt-4">
+    <div class="main-container ufsc-footer-inner">
+      <div class="left">
+        <div class="logo">UFSC</div>
+        <div class="name">Universidade Federal de Santa Catarina</div>
+        <div class="dept">Engenharia de Controle e Automação — Simulação de Sistemas Térmicos</div>
+      </div>
+      <div class="right">
+        <div>© 2025 UFSC — Uso acadêmico</div>
+        <div>Equipe: Davi • Renato • Henrique • Emanuelle</div>
+        <div><a href="#" data-coming="Acessibilidade">Acessibilidade</a> · <a href="#" data-coming="Política de Privacidade">Política de Privacidade</a></div>
+      </div>
+    </div>
+    <div class="bar"></div>
+  </footer>
+
+  <!-- MODAL “EM BREVE” -->
+  <div class="modal fade" id="comingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0">
+        <div class="modal-header bg-warning-subtle">
+          <h5 class="modal-title text-dark" id="comingTitle">Em breve</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">Este conteúdo está em desenvolvimento.</p>
+          <ul class="small text-muted mb-0">
+            <li>Projeto orientado por <b>Prof. Marcos Vinícius Americano</b>.</li>
+            <li>Bolsistas de Iniciação Científica vinculados ao <b>INCT</b>.</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" data-bs-dismiss="modal">Ok, entendi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+  <!-- JS simples: abre modal “Em breve” -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modalEl = document.getElementById('comingModal');
+      const modal = new bootstrap.Modal(modalEl);
+      const title = modalEl.querySelector('#comingTitle');
+
+      document.querySelectorAll('[data-coming]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          const what = el.getAttribute('data-coming') || 'Em breve';
+          title.textContent = `${what} — em breve`;
+          modal.show();
+        });
+      });
+    });
+  </script>
+</body>
+</html>
