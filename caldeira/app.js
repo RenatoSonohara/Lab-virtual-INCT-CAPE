@@ -1,16 +1,20 @@
 /**
  * ============================
  * Simulador Caldeira — UFSC
- * EDOs
+ * EDOs com PRÉ-COMPENSADOR DESACOPLANTE + 2 PIDs
  *
- * ENTRADAS:  W, St, Q
+ * ENTRADAS (originais):  W, St, Q
  * SAÍDAS:    L = Lf + Ls + LQ  |  P = Pf + Ps + PQ
+ * CONTROLE:  PID_L controla L via u1_pid
+ *            PID_P controla P via u2_pid
+ *            DESACOPLADOR transforma [u1_pid, u2_pid] → [W, Q]
+ *            com compensação do acoplamento de W e da perturbação St em P
  * ============================
  */
 
 class CaldeiraJS {
   constructor(opts) {
-    const { W, St, Q, refL, refP, consts, pid } = opts;
+    const { W, St, Q, refL, refP, consts, pid1, pid2 } = opts;
 
     this.DELTA_T = consts.DELTA_T;
 
@@ -31,30 +35,105 @@ class CaldeiraJS {
     this.Ps = 0;
     this.PQ = 0;
 
-    this.Kp = pid.kp;
-    this.Ki = pid.ki;
-    this.Kd = pid.kd;
-    this.acaoIntegral = 0;
+    // ──── PID 1: Controla NÍVEL L ────
+    this.Kp1 = pid1.kp;
+    this.Ki1 = pid1.ki;
+    this.Kd1 = pid1.kd;
+    this.acaoIntegral1 = 0;
+    this._lastL = 0;
+    this.sinalControle1 = 0; // u1_pid antes do desacoplador
+
+    // ──── PID 2: Controla PRESSÃO P ────
+    this.Kp2 = pid2.kp;
+    this.Ki2 = pid2.ki;
+    this.Kd2 = pid2.kd;
+    this.acaoIntegral2 = 0;
     this._lastP = 0;
-    this.sinalControle = 0;
+    this.sinalControle2 = 0; // u2_pid antes do desacoplador
+
+    // ──── PRÉ-COMPENSADOR DESACOPLANTE ────
+    // Dinâmica de pressão: dP/dt = -311*W -1338*St + 0.0006765*Q
+    // Escolha: u2_pid representa a contribuição desejada em dP/dt (Pa/s).
+    // Logo: Q = (u2_pid + 311*W + 1338*St) / 0.0006765
+    // Isso cancela o efeito de W e St sobre P e deixa u2_pid governar P.
+    this.desacoplador = {
+      gPw: -311,
+      gPs: -1338,
+      gPq: 0.0006765,
+    };
+
+    // Saídas do desacoplador
+    this.u1_apos_desacoplador = 0;
+    this.u2_apos_desacoplador = 0;
   }
 
+  // ──── PID 1: Controla NÍVEL ────
+  controleNivel(L) {
+    const uMin = -50, uMax = 50; // Limites do sinal PID
+    const erro = this.refL - L;
+    const dMeas = (L - this._lastL) / this.DELTA_T;
+    this._lastL = L;
+
+    this.acaoIntegral1 += this.Ki1 * erro * this.DELTA_T;
+    this.acaoIntegral1 = Math.max(uMin, Math.min(uMax, this.acaoIntegral1));
+
+    let u = this.Kp1 * erro + this.acaoIntegral1 - this.Kd1 * dMeas;
+    u = Math.max(uMin, Math.min(uMax, u));
+
+    this.sinalControle1 = u;
+    return erro;
+  }
+
+  // ──── PID 2: Controla PRESSÃO ────
   controlePressao(P) {
-    const uMin = 0, uMax = 100;
-    const erro  = this.refP - P;
+    // u2_pid e tratado como termo desejado de dP/dt (Pa/s)
+    const uMin = -500, uMax = 500;
+    const erro = this.refP - P;
     const dMeas = (P - this._lastP) / this.DELTA_T;
     this._lastP = P;
 
-    this.acaoIntegral += this.Ki * erro * this.DELTA_T;
-    this.acaoIntegral  = Math.max(uMin, Math.min(uMax, this.acaoIntegral));
+    this.acaoIntegral2 += this.Ki2 * erro * this.DELTA_T;
+    this.acaoIntegral2 = Math.max(uMin, Math.min(uMax, this.acaoIntegral2));
 
-    let u = this.Kp * erro + this.acaoIntegral - this.Kd * dMeas;
+    let u = this.Kp2 * erro + this.acaoIntegral2 - this.Kd2 * dMeas;
     u = Math.max(uMin, Math.min(uMax, u));
 
-    this.sinalControle = u;
-    this.Q = (u / 100) * 500000;
+    this.sinalControle2 = u;
     return erro;
   }
+
+  // ──── DESACOPLADOR ────
+  // Aplica desacoplamento [u1_pid, u2_pid] → [W_planta, Q_planta]
+  aplicarDesacoplador() {
+    const u1 = this.sinalControle1;
+    const u2 = this.sinalControle2;
+    const { gPw, gPs, gPq } = this.desacoplador;
+
+    // p_c1 atua em W
+    const p_c1 = u1;
+    // p_c2 atua em Q com compensação de acoplamento de W e perturbação St
+    const p_c2 = (u2 - gPw * p_c1 - gPs * this.St) / gPq;
+
+    // Saturação das variáveis manipuladas para manter coerência com a UI
+    this.u1_apos_desacoplador = Math.max(0, Math.min(100, p_c1));
+    this.u2_apos_desacoplador = Math.max(0, Math.min(500000, p_c2));
+
+    // Atualizar as entradas da planta
+    this.W = this.u1_apos_desacoplador;
+    this.Q = this.u2_apos_desacoplador;
+  }
+
+  // ──── RESETAR PIDs ────
+  resetPIDs() {
+    this.acaoIntegral1 = 0;
+    this._lastL = 0;
+    this.sinalControle1 = 0;
+    
+    this.acaoIntegral2 = 0;
+    this._lastP = 0;
+    this.sinalControle2 = 0;
+  }
+
 
   stepOnce() {
     const dt = this.DELTA_T;
@@ -95,9 +174,14 @@ class CaldeiraJS {
       Lf: this.Lf, Ls: this.Ls, LQ: this.LQ,
       Pf: this.Pf, Ps: this.Ps, PQ: this.PQ,
       W, St, Q,
-      sinalControle: this.sinalControle,
-      erroP: this.refP - P,
+      sinalControle1: this.sinalControle1,
+      sinalControle2: this.sinalControle2,
+      u1_apos_desacoplador: this.u1_apos_desacoplador,
+      u2_apos_desacoplador: this.u2_apos_desacoplador,
+      p_c1: this.u1_apos_desacoplador,
+      p_c2: this.u2_apos_desacoplador,
       erroL: this.refL - L,
+      erroP: this.refP - P,
     };
   }
 
@@ -106,10 +190,15 @@ class CaldeiraJS {
   setQ(v)    { this.Q  = v; }
   setRefL(v) { this.refL = v; }
   setRefP(v) { this.refP = v; }
-  setGains({kp, ki, kd}) {
-    if (kp !== undefined) this.Kp = kp;
-    if (ki !== undefined) this.Ki = ki;
-    if (kd !== undefined) this.Kd = kd;
+  setGains1({kp, ki, kd}) {
+    if (kp !== undefined) this.Kp1 = kp;
+    if (ki !== undefined) this.Ki1 = ki;
+    if (kd !== undefined) this.Kd1 = kd;
+  }
+  setGains2({kp, ki, kd}) {
+    if (kp !== undefined) this.Kp2 = kp;
+    if (ki !== undefined) this.Ki2 = ki;
+    if (kd !== undefined) this.Kd2 = kd;
   }
 }
 
@@ -133,33 +222,80 @@ const els = {
 
   W:    q('#W'),    St:   q('#St'),   Q:    q('#Q'),
   refP: q('#refP'), refL: q('#refL'),
-  kp:   q('#kp'),   ki:   q('#ki'),   kd:   q('#kd'),
+  
+  // PID 1 (Nível L)
+  kp1:   q('#kp1'),   ki1:   q('#ki1'),   kd1:   q('#kd1'),
+  
+  // PID 2 (Pressão P)
+  kp2:   q('#kp2'),   ki2:   q('#ki2'),   kd2:   q('#kd2'),
 
   W_txt:    q('#W_txt'),    St_txt:   q('#St_txt'),   Q_txt:    q('#Q_txt'),
   refP_txt: q('#refP_txt'), refL_txt: q('#refL_txt'),
-  kp_txt:   q('#kp_txt'),   ki_txt:   q('#ki_txt'),   kd_txt:   q('#kd_txt'),
+  
+  // PID 1 text
+  kp1_txt:   q('#kp1_txt'),   ki1_txt:   q('#ki1_txt'),   kd1_txt:   q('#kd1_txt'),
+  
+  // PID 2 text
+  kp2_txt:   q('#kp2_txt'),   ki2_txt:   q('#ki2_txt'),   kd2_txt:   q('#kd2_txt'),
+
+  loopModeToggle: q('#loopModeToggle'),
+  loopModeLabel:  q('#loopModeLabel'),
+  applyIdealGains: q('#applyIdealGainsBtn'),
 
   start:       q('#startBtn'),
   reset:       q('#resetBtn'),
   runBatch:    q('#runBatchBtn'),
+  cancelBatch: q('#cancelBatchBtn'),
   simDuration: q('#simDuration'),
 
   kpi_L:    q('#kpi_L'),
   kpi_P:    q('#kpi_P'),
-  kpi_ctrl: q('#kpi_ctrl'),
+  kpi_u1:   q('#kpi_u1'),
+  kpi_u2:   q('#kpi_u2'),
   kpi_refP: q('#kpi_refP'),
+  kpi_refL: q('#kpi_refL'),
 
   chartL:        q('#chartL'),
   chartP:        q('#chartP'),
   chartEntradas: q('#chartEntradas'),
+  chartControles: q('#chartControles'),
 
   toast: q('#toast'),
 };
 
 // Valores padrão para reset completo
 const DEFAULTS = {
-  W: 1, St: 1, Q: 1, refP: 0, refL: 0, kp: 0, ki: 0, kd: 0,
+  W: 1, St: 1, Q: 1, refP: 0, refL: 0, 
+  kp1: 0, ki1: 0, kd1: 0,
+  kp2: 0, ki2: 0, kd2: 0,
 };
+
+// Ganhos sugeridos (conservadores) para plantas com possível fase não mínima.
+const IDEAL_GAINS = {
+  kp1: 1.2,  ki1: 0.04, kd1: 0.35, // PID 1: L -> W
+  kp2: 0.22, ki2: 0.01, kd2: 0.08, // PID 2: P -> Q
+};
+
+function applyIdealGains() {
+  const maps = [
+    ['kp1', els.kp1, els.kp1_txt], ['ki1', els.ki1, els.ki1_txt], ['kd1', els.kd1, els.kd1_txt],
+    ['kp2', els.kp2, els.kp2_txt], ['ki2', els.ki2, els.ki2_txt], ['kd2', els.kd2, els.kd2_txt],
+  ];
+
+  maps.forEach(([k, slider, txt]) => {
+    const v = IDEAL_GAINS[k];
+    if (slider) slider.value = v;
+    if (txt) txt.value = v;
+  });
+
+  setLoopMode(true);
+  if (sim) {
+    sim.setGains1({ kp: IDEAL_GAINS.kp1, ki: IDEAL_GAINS.ki1, kd: IDEAL_GAINS.kd1 });
+    sim.setGains2({ kp: IDEAL_GAINS.kp2, ki: IDEAL_GAINS.ki2, kd: IDEAL_GAINS.kd2 });
+    sim.resetPIDs();
+  }
+  els.status.textContent = 'Ganhos conservadores aplicados (MF).';
+}
 
 // ============================================================
 // SINCRONIZAÇÃO SLIDER <-> TEXTO
@@ -170,12 +306,10 @@ const pares = [
   [els.Q,    els.Q_txt],
   [els.refP, els.refP_txt],
   [els.refL, els.refL_txt],
-  [els.kp,   els.kp_txt],
-  [els.ki,   els.ki_txt],
-  [els.kd,   els.kd_txt],
 ];
 
 pares.forEach(([slider, txt]) => {
+  if (!slider || !txt) return;
   slider.addEventListener('input', () => { txt.value = slider.value; });
   const syncToSlider = () => {
     const v = Number(txt.value);
@@ -187,6 +321,36 @@ pares.forEach(([slider, txt]) => {
   txt.addEventListener('change', syncToSlider);
   txt.addEventListener('keydown', (e) => { if (e.key === 'Enter') syncToSlider(); });
 });
+
+// Sincronização dos ganhos dos PIDs
+const gainPairs = [
+  [els.kp1, els.kp1_txt],
+  [els.ki1, els.ki1_txt],
+  [els.kd1, els.kd1_txt],
+  [els.kp2, els.kp2_txt],
+  [els.ki2, els.ki2_txt],
+  [els.kd2, els.kd2_txt],
+];
+
+gainPairs.forEach(([slider, txt]) => {
+  if (!slider || !txt) return;
+  slider.addEventListener('input', () => { txt.value = slider.value; });
+  const syncGainSliderOnly = () => {
+    const v = Number(txt.value);
+    if (!Number.isFinite(v)) return;
+    const clamped = Math.max(Number(slider.min), Math.min(Number(slider.max), v));
+    slider.value = clamped;
+  };
+  txt.addEventListener('input', syncGainSliderOnly);
+  txt.addEventListener('change', syncGainSliderOnly);
+  txt.addEventListener('keydown', (e) => { if (e.key === 'Enter') syncGainSliderOnly(); });
+});
+
+function gainFromText(txtEl, sliderEl) {
+  const v = Number(txtEl?.value);
+  if (Number.isFinite(v)) return v;
+  return Number(sliderEl?.value ?? 0);
+}
 
 // ============================================================
 // UI
@@ -201,15 +365,71 @@ function uiRunning(running) {
   els.start.classList.toggle('btn-primary', !running);
 }
 
+function setRunBatchLoading(loading) {
+  if (!els.runBatch) return;
+  if (loading) {
+    if (!els.runBatch.dataset.baseLabel) {
+      els.runBatch.dataset.baseLabel = els.runBatch.innerHTML;
+    }
+    els.runBatch.disabled = true;
+    els.runBatch.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Calculando...';
+  } else {
+    els.runBatch.disabled = false;
+    if (els.runBatch.dataset.baseLabel) {
+      els.runBatch.innerHTML = els.runBatch.dataset.baseLabel;
+    }
+  }
+}
+
+function setCancelBatchEnabled(enabled) {
+  if (!els.cancelBatch) return;
+  els.cancelBatch.disabled = !enabled;
+}
+
+function setParamsLocked(locked) {
+  const lockables = [
+    els.W, els.W_txt,
+    els.St, els.St_txt,
+    els.Q, els.Q_txt,
+    els.refP, els.refP_txt,
+    els.refL, els.refL_txt,
+    els.kp1, els.kp1_txt,
+    els.ki1, els.ki1_txt,
+    els.kd1, els.kd1_txt,
+    els.kp2, els.kp2_txt,
+    els.ki2, els.ki2_txt,
+    els.kd2, els.kd2_txt,
+    els.loopModeToggle,
+    els.applyIdealGains,
+    els.simDuration,
+  ];
+
+  lockables.forEach(el => {
+    if (el) el.disabled = locked;
+  });
+
+  // Durante batch, os comandos principais ficam travados.
+  if (els.start) els.start.disabled = locked;
+  if (els.reset) els.reset.disabled = locked;
+}
+
 function updateKPIs(s) {
   els.kpi_L.textContent    = fmt(s.L, 6) + ' m';
   els.kpi_P.textContent    = fmt(s.P, 4) + ' Pa';
-  els.kpi_ctrl.textContent = fmt(s.sinalControle, 1) + ' %';
+  els.kpi_u1.textContent   = fmt(s.u1_apos_desacoplador, 2) + ' kg/s';
+  els.kpi_u2.textContent   = fmt(s.u2_apos_desacoplador / 1000, 2) + ' kW';
   els.kpi_refP.textContent = fmt(Number(els.refP.value), 2);
+  els.kpi_refL.textContent = fmt(Number(els.refL.value), 6);
 }
 
 function resetKPIs() {
-  ['kpi_L','kpi_P','kpi_ctrl','kpi_refP'].forEach(id => els[id].textContent = '—');
+  ['kpi_L','kpi_P','kpi_u1','kpi_u2','kpi_refP','kpi_refL'].forEach(id => els[id].textContent = '—');
+}
+
+function setLoopMode(closedLoop) {
+  if (!els.loopModeToggle || !els.loopModeLabel) return;
+  els.loopModeToggle.checked = closedLoop;
+  els.loopModeLabel.textContent = closedLoop ? 'Malha Fechada' : 'Malha Aberta';
 }
 
 // ============================================================
@@ -257,6 +477,9 @@ function initCharts() {
 
   charts.ent = newChart(els.chartEntradas, 'Entradas',
     ['W (kg/s)', 'St (kg/s)', 'Q (kW)']);
+
+  charts.ctrl = newChart(els.chartControles, 'Ações de Controle',
+    ['u1 (PID L)', 'u2 (PID P)', 'p_c1 -> W', 'p_c2 -> Q (compensa W e St)']);
 }
 
 function pushPoint(chart, lbl, arrs) {
@@ -273,6 +496,7 @@ function _pushAllCharts(tSec, s, refL, refP) {
   pushPoint(charts.L,   tSec, [s.L,  s.Lf, s.Ls, s.LQ, refL]);
   pushPoint(charts.P,   tSec, [s.P,  s.Pf, s.Ps, s.PQ, refP]);
   pushPoint(charts.ent, tSec, [s.W,  s.St, s.Q / 1000]);
+  pushPoint(charts.ctrl, tSec, [s.sinalControle1, s.sinalControle2, s.u1_apos_desacoplador, s.u2_apos_desacoplador / 1000]);
 }
 
 // ============================================================
@@ -282,25 +506,38 @@ let charts = {};
 let timer = null, sim = null;
 const MAX_POINTS = 1200;
 let _stepCount = 0;
+let _batchRunning = false;
+let _batchCancelRequested = false;
+let _batchTimer = null;
 
 // ============================================================
 // INSTÂNCIA
 // ============================================================
 function createSim() {
+  const kp1 = gainFromText(els.kp1_txt, els.kp1);
+  const ki1 = gainFromText(els.ki1_txt, els.ki1);
+  const kd1 = gainFromText(els.kd1_txt, els.kd1);
+  const kp2 = gainFromText(els.kp2_txt, els.kp2);
+  const ki2 = gainFromText(els.ki2_txt, els.ki2);
+  const kd2 = gainFromText(els.kd2_txt, els.kd2);
+
   return new CaldeiraJS({
     W:    Number(els.W.value),
     St:   Number(els.St.value),
     Q:    Number(els.Q.value) * 1000,
     refL: Number(els.refL.value),
     refP: Number(els.refP.value),
-    pid:  { kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) },
+    pid1: { kp: kp1, ki: ki1, kd: kd1 },
+    pid2: { kp: kp2, ki: ki2, kd: kd2 },
     consts: { ...C },
   });
 }
 
-function pidAtivo() {
-  return Number(els.kp.value) > 0 || Number(els.ki.value) > 0 || Number(els.kd.value) > 0;
+function closedLoopAtivo() {
+  return Boolean(els.loopModeToggle?.checked);
 }
+
+let _controlMode = 'MA'; // Malha Aberta ou Malha Fechada
 
 // ============================================================
 // TEMPO REAL
@@ -327,23 +564,59 @@ function stopRealtime() {
 
 function tickRealtime(stepsPerInterval) {
   if (!sim) return;
+  const closedLoop = closedLoopAtivo();
 
-  sim.setW(Number(els.W.value));
+  // St e sempre perturbacao externa.
   sim.setSt(Number(els.St.value));
-  sim.setQ(Number(els.Q.value) * 1000);
   sim.setRefL(Number(els.refL.value));
   sim.setRefP(Number(els.refP.value));
-  sim.setGains({ kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) });
+  
+  // Atualizar ganhos (isso muda para MF se mexerem)
+  sim.setGains1({
+    kp: gainFromText(els.kp1_txt, els.kp1),
+    ki: gainFromText(els.ki1_txt, els.ki1),
+    kd: gainFromText(els.kd1_txt, els.kd1),
+  });
+  sim.setGains2({
+    kp: gainFromText(els.kp2_txt, els.kp2),
+    ki: gainFromText(els.ki2_txt, els.ki2),
+    kd: gainFromText(els.kd2_txt, els.kd2),
+  });
+
+  // Entradas manipuladas: W e Q.
+  const currentW = Number(els.W.value);
+  const currentQ = Number(els.Q.value) * 1000;
+  
+  if (!closedLoop) {
+    // Em MA, permite que o usuário mexe livremente
+    sim.setW(currentW);
+    sim.setQ(currentQ);
+  }
 
   let lastS;
   for (let i = 0; i < stepsPerInterval; i++) {
     lastS = sim.stepOnce();
-    if (pidAtivo()) sim.controlePressao(lastS.P);
+    
+    if (closedLoop) {
+      // Em MF, aplica os dois PIDs e o desacoplador
+      sim.controleNivel(lastS.L);
+      sim.controlePressao(lastS.P);
+      sim.aplicarDesacoplador();
+    }
+    
     _stepCount++;
     if (_stepCount % STEPS_PER_POINT === 0) {
       const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
       _pushAllCharts(tSec, lastS, sim.refL, sim.refP);
     }
+  }
+
+  // Sincronizar sliders das manipuladas em MF
+  if (closedLoop && lastS) {
+    els.W.value = lastS.u1_apos_desacoplador;
+    els.W_txt.value = lastS.u1_apos_desacoplador.toFixed(2);
+    els.Q.value = (lastS.u2_apos_desacoplador / 1000).toFixed(2);
+    els.Q_txt.value = (lastS.u2_apos_desacoplador / 1000).toFixed(2);
   }
 
   updateKPIs(lastS);
@@ -354,30 +627,76 @@ function tickRealtime(stepsPerInterval) {
 // MODO TEMPO SIMULADO (batch)
 // ============================================================
 function runBatch() {
+  if (_batchRunning) return;
+  _batchRunning = true;
+  _batchCancelRequested = false;
+
   const durS = Math.max(1, Number(els.simDuration.value) || 100);
   const totalSteps = Math.round(durS / C.DELTA_T);
+  const stepsPerChunk = 500;
 
   els.status.textContent = '⏳ Calculando…';
+  setParamsLocked(true);
+  setRunBatchLoading(true);
+  setCancelBatchEnabled(true);
   initCharts();
   resetKPIs();
   _stepCount = 0;
 
   const bSim = createSim();
+  const closedLoop = closedLoopAtivo();
+  let i = 0;
   let lastS;
 
-  for (let i = 0; i < totalSteps; i++) {
-    lastS = bSim.stepOnce();
-    if (pidAtivo()) bSim.controlePressao(lastS.P);
-    _stepCount++;
-    if (_stepCount % STEPS_PER_POINT === 0) {
-      const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
-      _pushAllCharts(tSec, lastS, bSim.refL, bSim.refP);
+  function finishBatch(statusMsg) {
+    if (_batchTimer) {
+      clearTimeout(_batchTimer);
+      _batchTimer = null;
     }
+    setRunBatchLoading(false);
+    setCancelBatchEnabled(false);
+    setParamsLocked(false);
+    _batchRunning = false;
+    _batchCancelRequested = false;
+    els.status.textContent = statusMsg;
   }
 
-  updateKPIs(lastS);
-  updateViz(lastS);
-  els.status.textContent = `✅ Simulado: ${durS} s`;
+  function processChunk() {
+    if (_batchCancelRequested) {
+      finishBatch('⏹️ Simulação cancelada.');
+      return;
+    }
+
+    const stop = Math.min(totalSteps, i + stepsPerChunk);
+
+    for (; i < stop; i++) {
+      lastS = bSim.stepOnce();
+      if (closedLoop) {
+        bSim.controleNivel(lastS.L);
+        bSim.controlePressao(lastS.P);
+        bSim.aplicarDesacoplador();
+      }
+      _stepCount++;
+      if (_stepCount % STEPS_PER_POINT === 0) {
+        const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
+        _pushAllCharts(tSec, lastS, bSim.refL, bSim.refP);
+      }
+    }
+
+    if (lastS) {
+      updateKPIs(lastS);
+      updateViz(lastS);
+    }
+
+    if (i < totalSteps) {
+      _batchTimer = setTimeout(processChunk, 0);
+      return;
+    }
+
+    finishBatch(`✅ Simulado: ${durS} s`);
+  }
+
+  _batchTimer = setTimeout(processChunk, 0);
 }
 
 // ============================================================
@@ -391,17 +710,26 @@ function fullReset() {
   _vizL = 0; _vizP = 0;
   els.status.textContent = 'Pronto';
   uiRunning(false);
+  setLoopMode(false);
 
   // Restaurar sliders e textos
-  const sliderMap = { W: els.W, St: els.St, Q: els.Q, refP: els.refP, refL: els.refL, kp: els.kp, ki: els.ki, kd: els.kd };
-  const txtMap    = { W: els.W_txt, St: els.St_txt, Q: els.Q_txt, refP: els.refP_txt, refL: els.refL_txt, kp: els.kp_txt, ki: els.ki_txt, kd: els.kd_txt };
+  const sliderMap = { 
+    W: els.W, St: els.St, Q: els.Q, refP: els.refP, refL: els.refL, 
+    kp1: els.kp1, ki1: els.ki1, kd1: els.kd1,
+    kp2: els.kp2, ki2: els.ki2, kd2: els.kd2,
+  };
+  const txtMap    = { 
+    W: els.W_txt, St: els.St_txt, Q: els.Q_txt, refP: els.refP_txt, refL: els.refL_txt, 
+    kp1: els.kp1_txt, ki1: els.ki1_txt, kd1: els.kd1_txt,
+    kp2: els.kp2_txt, ki2: els.ki2_txt, kd2: els.kd2_txt,
+  };
   Object.keys(DEFAULTS).forEach(k => {
-    sliderMap[k].value = DEFAULTS[k];
-    txtMap[k].value    = DEFAULTS[k];
+    if (sliderMap[k]) sliderMap[k].value = DEFAULTS[k];
+    if (txtMap[k]) txtMap[k].value    = DEFAULTS[k];
   });
 
   // Resetar visualização
-  updateViz({ L: 0, P: 0, Lf: 0, Ls: 0, LQ: 0 });
+  updateViz({ L: 0, P: 0, Lf: 0, Ls: 0, LQ: 0, u1_apos_desacoplador: 0, u2_apos_desacoplador: 0 });
 }
 
 // ============================================================
@@ -472,6 +800,35 @@ els.runBatch.addEventListener('click', () => {
   runBatch();
 });
 
+els.cancelBatch?.addEventListener('click', () => {
+  if (!_batchRunning) return;
+  _batchCancelRequested = true;
+  els.status.textContent = '🛑 Cancelando simulação...';
+  setCancelBatchEnabled(false);
+});
+
+els.applyIdealGains?.addEventListener('click', applyIdealGains);
+
+// Toggle de malha aberta/fechada
+els.loopModeToggle?.addEventListener('change', () => {
+  setLoopMode(els.loopModeToggle.checked);
+  if (sim) sim.resetPIDs();
+});
+
+// Se mexer nos ganhos dos PIDs, vai para Malha Fechada
+const gainInputs = [
+  els.kp1, els.kp1_txt, els.ki1, els.ki1_txt, els.kd1, els.kd1_txt,
+  els.kp2, els.kp2_txt, els.ki2, els.ki2_txt, els.kd2, els.kd2_txt,
+];
+gainInputs.forEach(el => el?.addEventListener('input', () => setLoopMode(true)));
+gainInputs.forEach(el => el?.addEventListener('change', () => setLoopMode(true)));
+
+// Se mexer em W ou Q, vai para Malha Aberta
+[els.W, els.W_txt, els.Q, els.Q_txt].forEach(el => el?.addEventListener('input', () => setLoopMode(false)));
+[els.W, els.W_txt, els.Q, els.Q_txt].forEach(el => el?.addEventListener('change', () => setLoopMode(false)));
+
+// OBS: St é perturbação, não muda o toggle
+
 // ============================================================
 // TOAST & BOOT
 // ============================================================
@@ -486,5 +843,7 @@ function showToast(msg) {
 
 function boot() {
   initCharts();
+  setLoopMode(false);
+  setCancelBatchEnabled(false);
 }
 boot();

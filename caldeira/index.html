@@ -108,6 +108,7 @@
             <input id="simDuration" type="number" min="1" max="100000" step="1" value="100"
               class="form-control form-control-sm" style="width:90px">
             <button id="runBatchBtn" class="btn btn-sm btn-outline-primary fw-bold">▶ Simular</button>
+            <button id="cancelBatchBtn" class="btn btn-sm btn-outline-danger">Cancelar</button>
           </div>
           <small class="text-muted d-block mt-1" style="font-size:0.78rem">Plota todos os pontos de uma vez.</small>
         </div>
@@ -125,12 +126,20 @@
               <strong class="d-block fs-5" id="kpi_P">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Sinal PID (%)</span>
-              <strong class="d-block fs-5" id="kpi_ctrl">—</strong>
+              <span class="small text-muted">W (planta)</span>
+              <strong class="d-block fs-5" id="kpi_u1">—</strong>
+            </div></div>
+            <div class="col"><div class="kpi border rounded-3 p-2">
+              <span class="small text-muted">Q (planta)</span>
+              <strong class="d-block fs-5" id="kpi_u2">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
               <span class="small text-muted">Ref. P (Pa)</span>
               <strong class="d-block fs-5" id="kpi_refP">—</strong>
+            </div></div>
+            <div class="col"><div class="kpi border rounded-3 p-2">
+              <span class="small text-muted">Ref. L (m)</span>
+              <strong class="d-block fs-5" id="kpi_refL">—</strong>
             </div></div>
           </div>
         </div>
@@ -319,32 +328,75 @@
             </div>
           </div>
 
-          <h3 class="h5">PID — Controle de Pressão via Q</h3>
-
-          <!-- Kp -->
-          <div class="mb-2">
-            <label class="form-label text-muted mb-1">Kp</label>
+          <hr class="my-3">
+          <div class="d-flex align-items-center justify-content-between mt-3 mb-2 flex-wrap gap-2">
+            <h3 class="h5 mb-0">Malha de Controle com Desacoplador</h3>
             <div class="d-flex align-items-center gap-2">
-              <input id="kp" type="range" min="0" max="10" step="0.001" value="0" class="form-range flex-grow-1">
-              <input id="kp_txt" type="number" min="0" max="10" step="0.001" value="0" class="form-control slider-input">
+              <button id="applyIdealGainsBtn" type="button" class="btn btn-sm btn-outline-secondary">Ganhos Ideais</button>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="loopModeToggle">
+                <label class="form-check-label small text-muted" for="loopModeToggle" id="loopModeLabel">Malha Aberta</label>
+              </div>
             </div>
           </div>
 
-          <!-- Ki -->
+          <p class="text-muted small mt-1 mb-2">Preset conservador para seguimento de referência com baixa agressividade (mais robusto a fase não mínima).</p>
+
+          <h3 class="h6 mt-3 mb-2" style="color:#2563eb;"><strong>PID 1 — Controle de NÍVEL L via W</strong></h3>
+
+          <!-- Kp1 -->
           <div class="mb-2">
-            <label class="form-label text-muted mb-1">Ki</label>
+            <label class="form-label text-muted mb-1">Kp1</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="ki" type="range" min="0" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
-              <input id="ki_txt" type="number" min="0" max="2" step="0.0001" value="0" class="form-control slider-input">
+              <input id="kp1" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+              <input id="kp1_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
             </div>
           </div>
 
-          <!-- Kd -->
+          <!-- Ki1 -->
           <div class="mb-2">
-            <label class="form-label text-muted mb-1">Kd</label>
+            <label class="form-label text-muted mb-1">Ki1</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="kd" type="range" min="0" max="5" step="0.001" value="0" class="form-range flex-grow-1">
-              <input id="kd_txt" type="number" min="0" max="5" step="0.001" value="0" class="form-control slider-input">
+              <input id="ki1" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+              <input id="ki1_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
+            </div>
+          </div>
+
+          <!-- Kd1 -->
+          <div class="mb-3">
+            <label class="form-label text-muted mb-1">Kd1</label>
+            <div class="d-flex align-items-center gap-2">
+              <input id="kd1" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+              <input id="kd1_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
+            </div>
+          </div>
+
+          <h3 class="h6 mb-2" style="color:#dc2626;"><strong>PID 2 — Controle de PRESSÃO P via Q</strong></h3>
+
+          <!-- Kp2 -->
+          <div class="mb-2">
+            <label class="form-label text-muted mb-1">Kp2</label>
+            <div class="d-flex align-items-center gap-2">
+              <input id="kp2" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+              <input id="kp2_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
+            </div>
+          </div>
+
+          <!-- Ki2 -->
+          <div class="mb-2">
+            <label class="form-label text-muted mb-1">Ki2</label>
+            <div class="d-flex align-items-center gap-2">
+              <input id="ki2" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+              <input id="ki2_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
+            </div>
+          </div>
+
+          <!-- Kd2 -->
+          <div class="mb-2">
+            <label class="form-label text-muted mb-1">Kd2</label>
+            <div class="d-flex align-items-center gap-2">
+              <input id="kd2" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+              <input id="kd2_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
             </div>
           </div>
 
@@ -390,6 +442,17 @@
         <div class="card-body">
           <h2 class="h5">Entradas do Sistema</h2>
           <canvas id="chartEntradas" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico: Ações de Controle e Desacoplador -->
+    <div class="col-lg-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="h5">Ações de Controle & Desacoplador</h2>
+          <p class="text-muted small">u1 e u2 (saídas dos PIDs) transformadas pelo desacoplador em p_c1->W e p_c2->Q. St permanece perturbação.</p>
+          <canvas id="chartControles" height="140"></canvas>
         </div>
       </div>
     </div>
