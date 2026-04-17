@@ -166,6 +166,22 @@ class EletrolisadorJS {
     this.sinalControle = this.Q_ctrl;
   }
 
+  currentState() {
+    const Vcell = this._calcVcell(this.I, this.T_stack);
+    const nH2 = (this.I > 0) ? (this.Ncells * this.I) / (2 * F) : 0;
+    return {
+      Vcell,
+      T_stack: this.T_stack,
+      nH2,
+      I: this.I,
+      Ncells: this.Ncells,
+      Q_ctrl: this.Q_ctrl,
+      Tamb_C: this.Tamb_K - 273.15,
+      sinalControle: this.sinalControle,
+      erroT: this.refT - this.T_stack,
+    };
+  }
+
 }
 
 // ============================================================
@@ -351,10 +367,6 @@ function initCharts() {
 function pushPoint(chart, lbl, arrs) {
   chart.data.labels.push(lbl);
   chart.data.datasets.forEach((ds, i) => ds.data.push(arrs[i] ?? null));
-  while (chart.data.labels.length > MAX_POINTS) {
-    chart.data.labels.shift();
-    chart.data.datasets.forEach(ds => ds.data.shift());
-  }
   chart.update('quiet');
 }
 
@@ -405,6 +417,10 @@ function startRealtime() {
   initCharts();
   _stepCount = 0;
   sim = createSim();
+  const s0 = sim.currentState();
+  _pushAllCharts(0, s0, sim.refT);
+  updateKPIs(s0);
+  updateViz(s0);
   uiRunning(true);
   const intervalMs = 16;
   const stepsPerInterval = Math.max(1, Math.round(intervalMs / (C.DELTA_T * 1000)));
@@ -474,6 +490,8 @@ function runBatch() {
   _stepCount = 0;
 
   const bSim = createSim();
+  const s0 = bSim.currentState();
+  _pushAllCharts(0, s0, bSim.refT);
   const closedLoop = closedLoopAtivo();
   let lastS;
   for (let i = 0; i < totalSteps; i++) {

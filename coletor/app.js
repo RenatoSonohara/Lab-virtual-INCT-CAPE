@@ -236,6 +236,40 @@ class ColetorSolarJS {
       Tav
     };
   }
+
+  currentState() {
+    const Tin = this.TEMPERATURA_ENTRADA;
+    const Tout = this.Tc;
+    const Tp = this.Tp;
+    const Ta = this.TEMPERATURA_AMBIENTE;
+    const I = this.irradiacao_solar;
+    const mdot = Math.max(this.getMdot_kg_s(), 1e-12);
+    const Tav = (Tin + Tout) / 2.0;
+    const Qsol = this.Ac * this.tau * this.eta0 * I;
+    const Qloss = this.UL * this.Ac * (Tav - Ta);
+    const Qpf = mdot * this.cp * (Tout - Tin);
+    const ganhoFluido = Math.max(0, Qpf);
+    const eta = (I * this.Ac) > 1e-9
+      ? Math.max(0, Math.min(1, ganhoFluido / (I * this.Ac)))
+      : 0;
+
+    return {
+      Tin,
+      Tout,
+      Tp,
+      vazaoPct: this.getPorcentagemVazao(),
+      vazaoVol_Lmin: this.getVazaoVol_Lmin(),
+      Qsol,
+      Qloss,
+      Qpf,
+      eta,
+      mdot_kg_s: mdot,
+      dT: (Tout - Tin),
+      erro: (Tout - this.REFERENCIA),
+      dTc_dt: 0,
+      Tav,
+    };
+  }
 }
 
 /* ======= Utilidades de tempo / CSV ======= */
@@ -629,11 +663,6 @@ function pushPoint(chart, label, arrs) {
   lbls.push(label);
   chart.data.datasets.forEach((ds, i) => ds.data.push(arrs[i]));
 
-  while (lbls.length > MAX_POINTS_REALTIME) {
-    lbls.shift();
-    chart.data.datasets.forEach(ds => ds.data.shift());
-  }
-
   chart.update('quiet');
 }
 
@@ -748,6 +777,15 @@ function startRealtimeFresh() {
   initCharts();
   sim = createSimulatorInstance();
   realtimeElapsedSec = 0;
+
+  const s0 = sim.currentState();
+  const label0 = fmt(0, 1);
+  pushPoint(charts.temp,  label0, [s0.Tin, s0.Tout, s0.Tp, sim.REFERENCIA]);
+  pushPoint(charts.vazao, label0, [s0.vazaoPct]);
+  pushPoint(charts.power, label0, [s0.Qsol, s0.Qloss, s0.Qpf]);
+  pushPoint(charts.erro,  label0, [s0.erro]);
+  pushPoint(charts.irrta, label0, [sim.irradiacao_solar, sim.TEMPERATURA_AMBIENTE]);
+  updateKPIs(s0, sim.REFERENCIA);
 
   els.status.textContent = '▶️ Executando em tempo real...';
   realtimeState = 'running';

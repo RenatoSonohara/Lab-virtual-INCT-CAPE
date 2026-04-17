@@ -197,6 +197,35 @@ class CaldeiraJS {
     this._resetControlStates();
   }
 
+  currentState() {
+    const L = this.Lf + this.Ls + this.LQ;
+    const P = this.Pf + this.Ps + this.PQ;
+
+    return {
+      L,
+      P,
+      Lf: this.Lf,
+      Ls: this.Ls,
+      LQ: this.LQ,
+      Pf: this.Pf,
+      Ps: this.Ps,
+      PQ: this.PQ,
+      W: this.W,
+      St: this.St,
+      Q: this.Q,
+      sinalControle1: this.sinalControle1,
+      sinalControle2: this.sinalControle2,
+      controlePrincipal: this.controlePrincipal,
+      controleSecundario: this.controleSecundario,
+      u1_apos_desacoplador: this.u1_apos_desacoplador,
+      u2_apos_desacoplador: this.u2_apos_desacoplador,
+      p_c1: this.u1_apos_desacoplador,
+      p_c2: this.u2_apos_desacoplador,
+      erroL: this.refL - L,
+      erroP: this.refP - P,
+    };
+  }
+
   stepOnce() {
     const dt = this.DELTA_T;
     const W = this.W;
@@ -779,10 +808,6 @@ function pushPoint(chart, lbl, arrs) {
   chart.data.datasets.forEach((dataset, index) => {
     dataset.data.push(arrs[index]);
   });
-  while (chart.data.labels.length > MAX_POINTS) {
-    chart.data.labels.shift();
-    chart.data.datasets.forEach(dataset => dataset.data.shift());
-  }
   chart.update('quiet');
 }
 
@@ -853,6 +878,10 @@ function startRealtime() {
   syncControlChartLabels();
   _stepCount = 0;
   sim = createSim();
+  const s0 = sim.currentState();
+  _pushAllCharts(0, s0, sim.refL, sim.refP);
+  updateKPIs(s0);
+  updateViz(s0);
   uiRunning(true);
   const intervalMs = 16;
   const stepsPerInterval = Math.max(1, Math.round(intervalMs / (C.DELTA_T * 1000)));
@@ -966,6 +995,8 @@ function runBatch() {
   _stepCount = 0;
 
   const bSim = createSim();
+  const s0 = bSim.currentState();
+  _pushAllCharts(0, s0, bSim.refL, bSim.refP);
   const closedLoop = closedLoopAtivo();
   let i = 0;
   let lastS;
