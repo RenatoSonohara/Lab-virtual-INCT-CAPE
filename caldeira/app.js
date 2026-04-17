@@ -120,17 +120,12 @@ class CaldeiraJS {
   }
 
   controleNivel(L) {
-    const uMin = -50;
-    const uMax = 50;
     const erro = this.refL - L;
     const dMeas = (L - this._lastL) / this.DELTA_T;
     this._lastL = L;
 
     this.acaoIntegral1 += this.Ki1 * erro * this.DELTA_T;
-    this.acaoIntegral1 = clamp(this.acaoIntegral1, uMin, uMax);
-
-    let u = this.Kp1 * erro + this.acaoIntegral1 - this.Kd1 * dMeas;
-    u = clamp(u, uMin, uMax);
+    const u = this.Kp1 * erro + this.acaoIntegral1 - this.Kd1 * dMeas;
 
     this.sinalControle1 = u;
     this.controlePrincipal = u;
@@ -138,17 +133,12 @@ class CaldeiraJS {
   }
 
   controlePressao(P) {
-    const uMin = -500;
-    const uMax = 500;
     const erro = this.refP - P;
     const dMeas = (P - this._lastP) / this.DELTA_T;
     this._lastP = P;
 
     this.acaoIntegral2 += this.Ki2 * erro * this.DELTA_T;
-    this.acaoIntegral2 = clamp(this.acaoIntegral2, uMin, uMax);
-
-    let u = this.Kp2 * erro + this.acaoIntegral2 - this.Kd2 * dMeas;
-    u = clamp(u, uMin, uMax);
+    const u = this.Kp2 * erro + this.acaoIntegral2 - this.Kd2 * dMeas;
 
     this.sinalControle2 = u;
     this.controleSecundario = u;
@@ -156,17 +146,12 @@ class CaldeiraJS {
   }
 
   controleNivelFF(L) {
-    const uMin = -50;
-    const uMax = 50;
     const erro = this.refL - L;
     const dMeas = (L - this._lastCtrlL) / this.DELTA_T;
     this._lastCtrlL = L;
 
     this.acaoIntegralCtrl += this.KiCtrl * erro * this.DELTA_T;
-    this.acaoIntegralCtrl = clamp(this.acaoIntegralCtrl, uMin, uMax);
-
-    let u = this.KpCtrl * erro + this.acaoIntegralCtrl - this.KdCtrl * dMeas;
-    u = clamp(u, uMin, uMax);
+    const u = this.KpCtrl * erro + this.acaoIntegralCtrl - this.KdCtrl * dMeas;
 
     this.sinalControle1 = u;
     this.controlePrincipal = u;
@@ -174,17 +159,12 @@ class CaldeiraJS {
   }
 
   controleFeedForward(St) {
-    const uMin = -50;
-    const uMax = 50;
     const erro = 0 - St;
     const dMeas = (St - this._lastFFSt) / this.DELTA_T;
     this._lastFFSt = St;
 
     this.acaoIntegralFF += this.KiFF * erro * this.DELTA_T;
-    this.acaoIntegralFF = clamp(this.acaoIntegralFF, uMin, uMax);
-
-    let u = this.KpFF * erro + this.acaoIntegralFF - this.KdFF * dMeas;
-    u = clamp(u, uMin, uMax);
+    const u = this.KpFF * erro + this.acaoIntegralFF - this.KdFF * dMeas;
 
     this.sinalControle2 = u;
     this.controleSecundario = u;
@@ -199,15 +179,15 @@ class CaldeiraJS {
     const p_c1 = u1;
     const p_c2 = (u2 - gPw * p_c1 - gPs * this.St) / gPq;
 
-    this.u1_apos_desacoplador = clamp(p_c1, 0, 100);
-    this.u2_apos_desacoplador = clamp(p_c2, 0, 500000);
+    this.u1_apos_desacoplador = p_c1;
+    this.u2_apos_desacoplador = p_c2;
 
     this.W = this.u1_apos_desacoplador;
     this.Q = this.u2_apos_desacoplador;
   }
 
   aplicarControleNivelFF() {
-    const deltaW = clamp(this.sinalControle1 + this.sinalControle2, 0, 100);
+    const deltaW = this.sinalControle1 + this.sinalControle2;
     this.u1_apos_desacoplador = deltaW;
     this.u2_apos_desacoplador = this.Q;
     this.W = deltaW;
@@ -533,8 +513,8 @@ function syncTextToSlider(slider, txt) {
     const min = Number(slider.min);
     const max = Number(slider.max);
     slider.value = Math.max(min, Math.min(max, v));
-    txt.value = slider.value;
   };
+  txt.addEventListener('input', syncToSlider);
   txt.addEventListener('change', syncToSlider);
   txt.addEventListener('keydown', e => { if (e.key === 'Enter') syncToSlider(); });
 }

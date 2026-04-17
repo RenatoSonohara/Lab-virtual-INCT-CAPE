@@ -10,6 +10,10 @@
 function q(s){ return document.querySelector(s); }
 function fmt(x, d=2){ return Number(x).toFixed(d); }
 
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
 /* ======= Modelo + Controlador ======= */
 class ColetorSolarJS {
   constructor(opts) {
@@ -83,7 +87,7 @@ class ColetorSolarJS {
 
   /* ===== Conversões vazão ===== */
   getVdot_m3s() {
-    return Math.max(0, this.vazaoVol_Lmin) / 60000.0; // L/min -> m³/s
+    return this.vazaoVol_Lmin / 60000.0; // L/min -> m³/s
   }
 
   getMdot_kg_s() {
@@ -102,8 +106,7 @@ class ColetorSolarJS {
   }
 
   setPorcentagemVazao(pct) {
-    const p = Math.max(0, pct);
-    this.vazaoVol_Lmin = (p / 100.0) * this.vazaoVolNominal_Lmin;
+    this.vazaoVol_Lmin = (pct / 100.0) * this.vazaoVolNominal_Lmin;
   }
 
   getVazaoVol_Lmin() {
@@ -129,10 +132,6 @@ class ColetorSolarJS {
   /* ===== PID com derivada na medição + filtro derivativo ===== */
   // erro = Tout - Ref
   controleVazao(temperaturaSaida) {
-    const uMin = 10;
-    const uMax = 100;
-    const prev = this.getPorcentagemVazao();
-
     const erro_pv = temperaturaSaida - this.REFERENCIA;
 
     const dMeasRaw = (temperaturaSaida - this._lastMeas) / this.DELTA_T;
@@ -147,39 +146,8 @@ class ColetorSolarJS {
       this._dMeasFilt = dMeasRaw;
     }
 
-    const uTesteSemInt = (this.Kp * erro_pv) + (-this.Kd * dMeas);
-    const uPrevSemInt  = uTesteSemInt + this.acaoIntegral;
-    const saturadoPrev = (uPrevSemInt >= uMax) || (uPrevSemInt <= uMin);
-
-    const iCandidate = this.acaoIntegral + (this.Ki * erro_pv * this.DELTA_T);
-    let uPos = (this.Kp * erro_pv) + iCandidate + (-this.Kd * dMeas);
-
-    let saturated = false;
-    if (uPos > uMax) { uPos = uMax; saturated = true; }
-    if (uPos < uMin) { uPos = uMin; saturated = true; }
-
-    if (saturated) {
-      const kaw = 0.3 * this.Ki;
-      const uSemI = (this.Kp * erro_pv) + (-this.Kd * dMeas) + this.acaoIntegral;
-      const eSat = uSemI - uPos;
-      this.acaoIntegral -= kaw * eSat * this.DELTA_T;
-    } else {
-      const integralAjudaSair =
-        (uPrevSemInt >= uMax && erro_pv < 0) ||
-        (uPrevSemInt <= uMin && erro_pv > 0);
-
-      if (!saturadoPrev || integralAjudaSair) {
-        this.acaoIntegral = iCandidate;
-      }
-    }
-
-    uPos = (this.Kp * erro_pv) + this.acaoIntegral + (-this.Kd * dMeas);
-    if (uPos > uMax) uPos = uMax;
-    if (uPos < uMin) uPos = uMin;
-
-    const maxStepPctPerSec = 12;
-    const maxDelta = maxStepPctPerSec * this.DELTA_T;
-    const uPct = Math.max(prev - maxDelta, Math.min(prev + maxDelta, uPos));
+    this.acaoIntegral += (this.Ki * erro_pv * this.DELTA_T);
+    const uPct = (this.Kp * erro_pv) + this.acaoIntegral + (-this.Kd * dMeas);
 
     this.setPorcentagemVazao(uPct);
     return erro_pv;
@@ -358,15 +326,15 @@ const els = {
   status  : q('#statusMsg'),
   clockNow: q('#clockNow'),
 
-  irr: q('#irr'), irrVal: q('#irr_val'),
-  ta: q('#ta'), taVal: q('#ta_val'),
-  vaz: q('#vaz'), vazVal: q('#vaz_val'),
+  irr: q('#irr'), irrTxt: q('#irr_txt'), irrVal: q('#irr_val'),
+  ta: q('#ta'), taTxt: q('#ta_txt'), taVal: q('#ta_val'),
+  vaz: q('#vaz'), vazTxt: q('#vaz_txt'), vazVal: q('#vaz_val'),
 
-  ref: q('#ref'), refVal: q('#ref_val'),
-  kp: q('#kp'), kpVal: q('#kp_val'),
-  ki: q('#ki'), kiVal: q('#ki_val'),
-  kd: q('#kd'), kdVal: q('#kd_val'),
-  tf: q('#tf'), tfVal: q('#tf_val'),
+  ref: q('#ref'), refTxt: q('#ref_txt'), refVal: q('#ref_val'),
+  kp: q('#kp'), kpTxt: q('#kp_txt'), kpVal: q('#kp_val'),
+  ki: q('#ki'), kiTxt: q('#ki_txt'), kiVal: q('#ki_val'),
+  kd: q('#kd'), kdTxt: q('#kd_txt'), kdVal: q('#kd_val'),
+  tf: q('#tf'), tfTxt: q('#tf_txt'), tfVal: q('#tf_val'),
 
   start: q('#startBtn'),
   reset: q('#resetBtn'),
@@ -439,25 +407,64 @@ const MAX_POINTS_REALTIME = 300;
 
 let constModalInstance = null;
 
+function readControlValue(sliderEl, txtEl) {
+  const txtV = Number(txtEl?.value);
+  if (Number.isFinite(txtV)) return txtV;
+  return Number(sliderEl?.value ?? 0);
+}
+
+function bindSliderText(slider, txt) {
+  if (!slider || !txt) return;
+  slider.addEventListener('input', () => {
+    txt.value = slider.value;
+    updateLabels();
+  });
+
+  const syncSliderOnly = () => {
+    const v = Number(txt.value);
+    if (!Number.isFinite(v)) return;
+    slider.value = clamp(v, Number(slider.min), Number(slider.max));
+    updateLabels();
+  };
+
+  txt.addEventListener('input', syncSliderOnly);
+  txt.addEventListener('change', syncSliderOnly);
+  txt.addEventListener('keydown', e => { if (e.key === 'Enter') syncSliderOnly(); });
+}
+
 /* ======= UI ======= */
 function updateLabels() {
-  els.irrVal.textContent = Number(els.irr.value).toFixed(0);
-  els.taVal.textContent  = Number(els.ta.value).toFixed(1);
-  els.refVal.textContent = Number(els.ref.value).toFixed(1);
-  els.vazVal.textContent = `${Number(els.vaz.value).toFixed(0)}%`;
-  els.kpVal.textContent  = Number(els.kp.value).toFixed(2);
-  els.kiVal.textContent  = Number(els.ki.value).toFixed(2);
-  els.kdVal.textContent  = Number(els.kd.value).toFixed(3);
-  els.tfVal.textContent  = Number(els.tf.value).toFixed(1);
+  const irrV = readControlValue(els.irr, els.irrTxt);
+  const taV = readControlValue(els.ta, els.taTxt);
+  const refV = readControlValue(els.ref, els.refTxt);
+  const vazV = readControlValue(els.vaz, els.vazTxt);
+  const kpV = readControlValue(els.kp, els.kpTxt);
+  const kiV = readControlValue(els.ki, els.kiTxt);
+  const kdV = readControlValue(els.kd, els.kdTxt);
+  const tfV = readControlValue(els.tf, els.tfTxt);
+
+  els.irrVal.textContent = Number(irrV).toFixed(0);
+  els.taVal.textContent  = Number(taV).toFixed(1);
+  els.refVal.textContent = Number(refV).toFixed(1);
+  els.vazVal.textContent = `${Number(vazV).toFixed(0)}%`;
+  els.kpVal.textContent  = Number(kpV).toFixed(2);
+  els.kiVal.textContent  = Number(kiV).toFixed(2);
+  els.kdVal.textContent  = Number(kdV).toFixed(3);
+  els.tfVal.textContent  = Number(tfV).toFixed(1);
 
   els.refNow.textContent = els.refVal.textContent + ' °C';
 }
 
-['input','change'].forEach(evt => {
-  [els.irr, els.ta, els.ref, els.vaz, els.kp, els.ki, els.kd, els.tf].forEach(el => {
-    el.addEventListener(evt, updateLabels);
-  });
-});
+[
+  [els.irr, els.irrTxt],
+  [els.ta, els.taTxt],
+  [els.vaz, els.vazTxt],
+  [els.ref, els.refTxt],
+  [els.kp, els.kpTxt],
+  [els.ki, els.kiTxt],
+  [els.kd, els.kdTxt],
+  [els.tf, els.tfTxt],
+].forEach(([slider, txt]) => bindSliderText(slider, txt));
 
 [els.tmReal, els.tmSim].forEach(r => {
   r.addEventListener('change', () => {
@@ -507,7 +514,18 @@ function uiRunning(runningBatch) {
   [els.tmReal, els.tmSim, els.csvFile, els.simStart, els.simEnd, els.simStep].forEach(el => el.disabled = runningBatch);
 
   const simControlsDisabled = isBatch;
-  [els.irr, els.ta, els.ref, els.vaz, els.kp, els.ki, els.kd, els.tf].forEach(el => el.disabled = simControlsDisabled);
+  [
+    els.irr, els.irrTxt,
+    els.ta, els.taTxt,
+    els.ref, els.refTxt,
+    els.vaz, els.vazTxt,
+    els.kp, els.kpTxt,
+    els.ki, els.kiTxt,
+    els.kd, els.kdTxt,
+    els.tf, els.tfTxt,
+  ].forEach(el => {
+    if (el) el.disabled = simControlsDisabled;
+  });
 
   if (timeMode === 'real') {
     const isRunning = (realtimeState === 'running');
@@ -647,15 +665,15 @@ function updateClock() {
 /* ======= Instância ======= */
 function createSimulatorInstance() {
   return new ColetorSolarJS({
-    irradiacao_solar: Number(els.irr.value),
-    temperaturaAmbiente: Number(els.ta.value),
-    porcentagem_vazao: Number(els.vaz.value),
-    referencia: Number(els.ref.value),
+    irradiacao_solar: readControlValue(els.irr, els.irrTxt),
+    temperaturaAmbiente: readControlValue(els.ta, els.taTxt),
+    porcentagem_vazao: readControlValue(els.vaz, els.vazTxt),
+    referencia: readControlValue(els.ref, els.refTxt),
     pid: {
-      kp: Number(els.kp.value),
-      ki: Number(els.ki.value),
-      kd: Number(els.kd.value),
-      tf: Number(els.tf.value)
+      kp: readControlValue(els.kp, els.kpTxt),
+      ki: readControlValue(els.ki, els.kiTxt),
+      kd: readControlValue(els.kd, els.kdTxt),
+      tf: readControlValue(els.tf, els.tfTxt)
     },
     consts: { ...C }
   });
@@ -718,7 +736,7 @@ function runSweep() {
     if (tsec > endSec) tsec = endSec;
   }
 
-  if (lastState) updateKPIs(lastState, Number(els.ref.value));
+  if (lastState) updateKPIs(lastState, readControlValue(els.ref, els.refTxt));
 
   renderAllCharts({ labels, Tin, Tout, Tp, vazPct, Qsol, Qloss, Qpf, erro, Irr, Ta, Ref });
 
@@ -760,15 +778,15 @@ function pauseRealtime() {
 function tickRealtime() {
   if (!sim) return;
 
-  sim.setIrradiacao(Number(els.irr.value));
-  sim.setTa(Number(els.ta.value));
-  sim.setReferencia(Number(els.ref.value));
-  sim.setPorcentagemVazao(Number(els.vaz.value));
+  sim.setIrradiacao(readControlValue(els.irr, els.irrTxt));
+  sim.setTa(readControlValue(els.ta, els.taTxt));
+  sim.setReferencia(readControlValue(els.ref, els.refTxt));
+  sim.setPorcentagemVazao(readControlValue(els.vaz, els.vazTxt));
   sim.setGains({
-    kp: Number(els.kp.value),
-    ki: Number(els.ki.value),
-    kd: Number(els.kd.value),
-    tf: Number(els.tf.value)
+    kp: readControlValue(els.kp, els.kpTxt),
+    ki: readControlValue(els.ki, els.kiTxt),
+    kd: readControlValue(els.kd, els.kdTxt),
+    tf: readControlValue(els.tf, els.tfTxt)
   });
 
   const s = sim.stepOnce();
