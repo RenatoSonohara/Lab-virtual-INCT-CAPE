@@ -460,7 +460,7 @@ const CONTROL_MODES = {
     label: 'Controle clássico',
     button: 'Estratégia: Controle clássico',
     panel: 'strategyClassicPanel',
-    chartLabels: ['PID de nível', 'PID de pressão', 'ΔW aplicada', 'ΔQ aplicada'],
+    chartLabels: ['PID de nível', 'PID de pressão', 'ΔF aplicada', 'ΔQ aplicada'],
     summaryBadge: 'Controle clássico',
     summaryTitle: 'PID de nível e PID de pressão',
     summaryText: 'A malha clássica usa dois PIDs e o desacoplador entre W e Q.',
@@ -475,16 +475,16 @@ const CONTROL_MODES = {
     label: 'Nível + feed forward',
     button: 'Estratégia: Nível + feed forward',
     panel: 'strategyLevelFFPanel',
-    chartLabels: ['Controlador de nível', 'Feed forward', 'ΔW aplicada', 'ΔQ aplicada'],
+    chartLabels: ['Controlador de nível', 'Feed forward', 'ΔF aplicada', 'ΔQ aplicada'],
     summaryBadge: 'Nível + feed forward',
     summaryTitle: 'PID de nível + PID feed forward',
     summaryText: 'O controlador principal fecha a malha de nível e o feed forward corrige ΔSt em ΔW.',
     primaryRoleKicker: 'Controlador',
-    primaryRoleTitle: 'PID de NÍVEL L via ΔW',
-    primaryRoleDesc: 'Lê L e a referência para ajustar ΔW.',
+    primaryRoleTitle: 'PID de NÍVEL L via ΔF',
+    primaryRoleDesc: 'Lê L e a referência para ajustar ΔF.',
     secondaryRoleKicker: 'Controlador feed forward',
-    secondaryRoleTitle: 'PID via ΔSt',
-    secondaryRoleDesc: 'Lê ΔSt e injeta correção em ΔW.',
+    secondaryRoleTitle: 'PID via ΔV',
+    secondaryRoleDesc: 'Lê ΔV e injeta correção em ΔF.',
   },
 };
 
@@ -655,9 +655,9 @@ function setParamsLocked(locked) {
 function updateKPIs(s) {
   if (!s) return;
   els.kpi_L.textContent = fmt(s.L, 6) + ' m';
-  els.kpi_P.textContent = fmt(s.P, 4) + ' Pa';
+  els.kpi_P.textContent = fmt(s.P, 4) + ' MPa';
   els.kpi_u1.textContent = fmt(s.u1_apos_desacoplador, 2) + ' kg/s';
-  els.kpi_u2.textContent = fmt(s.u2_apos_desacoplador / 1000, 2) + ' kW';
+  els.kpi_u2.textContent = fmt(s.u2_apos_desacoplador / 1e6, 4) + ' MW';
   els.kpi_refP.textContent = fmt(readParamValue(els.refP, els.refP_txt), 2);
   els.kpi_refL.textContent = fmt(readParamValue(els.refL, els.refL_txt), 6);
 }
@@ -796,9 +796,9 @@ function newChart(canvas, yLabel, labels, hiddenIndices = []) {
 function initCharts() {
   Object.values(charts).forEach(chart => chart?.destroy?.());
 
-  charts.L = newChart(els.chartL, 'Nível (m)', ['L total', 'Lf (por W)', 'Ls (por St)', 'LQ (por Q)', 'Ref. Nível'], [1, 2, 3]);
-  charts.P = newChart(els.chartP, 'Pressão (Pa)', ['P total', 'Pf (por W)', 'Ps (por St)', 'PQ (por Q)', 'Ref. Pressão'], [1, 2, 3]);
-  charts.ent = newChart(els.chartEntradas, 'Entradas', ['W (kg/s)', 'St (kg/s)', 'Q (kW)']);
+  charts.L = newChart(els.chartL, 'Nível ΔL (m)', ['L total', 'Lf (por ΔF)', 'Ls (por ΔV)', 'LQ (por ΔQ)', 'Ref. Nível'], [1, 2, 3]);
+  charts.P = newChart(els.chartP, 'Pressão ΔP (MPa)', ['P total', 'Pf (por ΔF)', 'Ps (por ΔV)', 'PQ (por ΔQ)', 'Ref. Pressão'], [1, 2, 3]);
+  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%)', 'ΔQ (MJ)']);
   charts.ctrl = newChart(els.chartControles, 'Ações de Controle', controlChartLabels());
 }
 
@@ -813,7 +813,7 @@ function pushPoint(chart, lbl, arrs) {
 
 function _pushAllCharts(tSec, s, refL, refP) {
   pushPoint(charts.L, tSec, [s.L, s.Lf, s.Ls, s.LQ, refL]);
-  pushPoint(charts.P, tSec, [s.P, s.Pf, s.Ps, s.PQ, refP]);
+  pushPoint(charts.P, tSec, [s.P/1e6, s.Pf/1e6, s.Ps/1e6, s.PQ/1e6, refP/1e6]);
   pushPoint(charts.ent, tSec, [s.W, s.St, s.Q / 1000]);
   pushPoint(charts.ctrl, tSec, [s.controlePrincipal ?? s.sinalControle1, s.controleSecundario ?? s.sinalControle2, s.u1_apos_desacoplador, s.u2_apos_desacoplador / 1000]);
 }
@@ -837,7 +837,7 @@ function createSim() {
   return new CaldeiraJS({
     W: readParamValue(els.W, els.W_txt),
     St: readParamValue(els.St, els.St_txt),
-    Q: readParamValue(els.Q, els.Q_txt) * 1000,
+    Q: readParamValue(els.Q, els.Q_txt) * 1e6,
     refL: readParamValue(els.refL, els.refL_txt),
     refP: readParamValue(els.refP, els.refP_txt),
     gainsClassic: {

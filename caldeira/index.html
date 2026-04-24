@@ -118,23 +118,23 @@
           <h2>Indicadores</h2>
           <div class="row row-cols-2 g-2 mt-1">
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Nível L (m)</span>
+              <span class="small text-muted">Nível ΔL (m)</span>
               <strong class="d-block fs-5" id="kpi_L">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Pressão P (Pa)</span>
+              <span class="small text-muted">Pressão ΔP (MPa)</span>
               <strong class="d-block fs-5" id="kpi_P">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">W (planta)</span>
+              <span class="small text-muted">ΔF (kg/s)</span>
               <strong class="d-block fs-5" id="kpi_u1">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Q (planta)</span>
+              <span class="small text-muted">ΔQ (MJ)</span>
               <strong class="d-block fs-5" id="kpi_u2">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Ref. P (Pa)</span>
+              <span class="small text-muted">Ref. P (MPa)</span>
               <strong class="d-block fs-5" id="kpi_refP">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
@@ -328,7 +328,7 @@
 
           <!-- W -->
           <div class="mb-2">
-            <label class="form-label text-muted mb-1">ΔW — alimentação (kg/s)</label>
+            <label class="form-label text-muted mb-1">ΔF — vazão mássica entrada (kg/s)</label>
             <div class="d-flex align-items-center gap-2">
               <input id="W" type="range" min="0" max="100" step="0.001" value="1" class="form-range flex-grow-1">
               <input id="W_txt" type="number" min="0" max="100" step="0.001" value="1" class="form-control slider-input">
@@ -337,16 +337,16 @@
 
           <!-- St -->
           <div class="mb-2">
-            <label class="form-label text-muted mb-1">ΔSt — vapor (kg/s)</label>
+            <label class="form-label text-muted mb-1">ΔV — abertura válvula saída vapor (%)</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="St" type="range" min="0" max="100" step="0.001" value="1" class="form-range flex-grow-1">
-              <input id="St_txt" type="number" min="0" max="100" step="0.001" value="1" class="form-control slider-input">
+              <input id="St" type="range" min="-100" max="100" step="0.1" value="1" class="form-range flex-grow-1">
+              <input id="St_txt" type="number" min="-100" max="100" step="0.1" value="1" class="form-control slider-input">
             </div>
           </div>
 
           <!-- Q -->
           <div class="mb-3">
-            <label class="form-label text-muted mb-1">ΔQ — calor inicial (kW)</label>
+            <label class="form-label text-muted mb-1">ΔQ — energia de entrada (MJ)</label>
             <div class="d-flex align-items-center gap-2">
               <input id="Q" type="range" min="0" max="500" step="1" value="1" class="form-range flex-grow-1">
               <input id="Q_txt" type="number" min="0" max="500" step="1" value="1" class="form-control slider-input">
@@ -580,7 +580,7 @@
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Ações de Controle & Desacoplador</h2>
-          <p class="text-muted small">u1 e u2 (saídas dos PIDs) transformadas pelo desacoplador em p_c1->W e p_c2->Q. St permanece perturbação.</p>
+          <p class="text-muted small">u1 e u2 transformadas pelo desacoplador em ΔF e ΔQ. ΔV permanece perturbação..</p>
           <canvas id="chartControles" height="140"></canvas>
         </div>
       </div>
