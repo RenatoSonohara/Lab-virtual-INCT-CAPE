@@ -49,7 +49,7 @@
           <ul class="dropdown-menu dropdown-menu-end ufsc-dropdown">
             <li><a class="dropdown-item" href="../coletor/">Coletor Solar (PID)</a></li>
             <li><a class="dropdown-item active" href="../caldeira/">Caldeira</a></li>
-            <li><a class="dropdown-item" href="#" data-coming-soon>Eletrolizador</a></li>
+            <li><a class="dropdown-item" href="../eletrolisador/eletrolisador.html">Eletrolisador</a></li>
           </ul>
         </li>
         <li class="nav-item"><a class="nav-link ufsc-link" href="#" data-coming-soon>Documentação</a></li>
@@ -108,6 +108,7 @@
             <input id="simDuration" type="number" min="1" max="100000" step="1" value="100"
               class="form-control form-control-sm" style="width:90px">
             <button id="runBatchBtn" class="btn btn-sm btn-outline-primary fw-bold">▶ Simular</button>
+            <button id="cancelBatchBtn" class="btn btn-sm btn-outline-danger">Cancelar</button>
           </div>
           <small class="text-muted d-block mt-1" style="font-size:0.78rem">Plota todos os pontos de uma vez.</small>
         </div>
@@ -117,20 +118,28 @@
           <h2>Indicadores</h2>
           <div class="row row-cols-2 g-2 mt-1">
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Nível L (m)</span>
+              <span class="small text-muted">Nível ΔL (m)</span>
               <strong class="d-block fs-5" id="kpi_L">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Pressão P (Pa)</span>
+              <span class="small text-muted">Pressão ΔP (MPa)</span>
               <strong class="d-block fs-5" id="kpi_P">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Sinal PID (%)</span>
-              <strong class="d-block fs-5" id="kpi_ctrl">—</strong>
+              <span class="small text-muted">ΔF (kg/s)</span>
+              <strong class="d-block fs-5" id="kpi_u1">—</strong>
             </div></div>
             <div class="col"><div class="kpi border rounded-3 p-2">
-              <span class="small text-muted">Ref. P (Pa)</span>
+              <span class="small text-muted">ΔQ (MJ)</span>
+              <strong class="d-block fs-5" id="kpi_u2">—</strong>
+            </div></div>
+            <div class="col"><div class="kpi border rounded-3 p-2">
+              <span class="small text-muted">Ref. P (MPa)</span>
               <strong class="d-block fs-5" id="kpi_refP">—</strong>
+            </div></div>
+            <div class="col"><div class="kpi border rounded-3 p-2">
+              <span class="small text-muted">Ref. L (m)</span>
+              <strong class="d-block fs-5" id="kpi_refL">—</strong>
             </div></div>
           </div>
         </div>
@@ -138,8 +147,8 @@
     </div>
 
     <!-- Visualização da Caldeira -->
-    <div class="col-lg-4">
-      <div class="card shadow-sm h-100">
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="card shadow-sm">
         <div class="card-body d-flex flex-column">
           <h2 class="h5 mb-2">Visualização da Caldeira</h2>
           <div class="caldeira-viz-wrap flex-grow-1 d-flex align-items-center justify-content-center">
@@ -263,6 +272,51 @@
           </div>
         </div>
       </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+              <h2 class="h5 mb-1">Diagrama da Planta</h2>
+              <p class="text-muted small mb-0">Comente dinâmicas para zerar entrada e saída sem interferir na simulação.</p>
+            </div>
+            <span class="badge text-bg-light border">6 dinâmicas</span>
+          </div>
+
+          <div class="plant-diagram mt-3">
+            <button type="button" class="plant-block" data-dynamic-toggle="Lf" data-active-meta="Entrada W">
+              <span class="plant-block-title">Lf(s)</span>
+              <span class="plant-block-meta">Entrada W</span>
+              <span class="plant-block-state">Ativa</span>
+            </button>
+            <button type="button" class="plant-block" data-dynamic-toggle="Ls" data-active-meta="Entrada ΔSt">
+              <span class="plant-block-title">Ls(s)</span>
+              <span class="plant-block-meta">Entrada ΔSt</span>
+              <span class="plant-block-state">Ativa</span>
+            </button>
+            <button type="button" class="plant-block" data-dynamic-toggle="LQ" data-active-meta="Entrada ΔQ">
+              <span class="plant-block-title">LQ(s)</span>
+              <span class="plant-block-meta">Entrada ΔQ</span>
+              <span class="plant-block-state">Ativa</span>
+            </button>
+            <button type="button" class="plant-block" data-dynamic-toggle="Pf" data-active-meta="Saída L">
+              <span class="plant-block-title">Pf(s)</span>
+              <span class="plant-block-meta">Saída L</span>
+              <span class="plant-block-state">Ativa</span>
+            </button>
+            <button type="button" class="plant-block" data-dynamic-toggle="Ps" data-active-meta="Saída P">
+              <span class="plant-block-title">Ps(s)</span>
+              <span class="plant-block-meta">Saída P</span>
+              <span class="plant-block-state">Ativa</span>
+            </button>
+            <button type="button" class="plant-block" data-dynamic-toggle="PQ" data-active-meta="Saída P">
+              <span class="plant-block-title">PQ(s)</span>
+              <span class="plant-block-meta">Saída P</span>
+              <span class="plant-block-state">Ativa</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Parâmetros -->
@@ -274,7 +328,7 @@
 
           <!-- W -->
           <div class="mb-2">
-            <label class="form-label text-muted mb-1">ΔW — alimentação (kg/s)</label>
+            <label class="form-label text-muted mb-1">ΔF — vazão mássica entrada (kg/s)</label>
             <div class="d-flex align-items-center gap-2">
               <input id="W" type="range" min="0" max="100" step="0.001" value="1" class="form-range flex-grow-1">
               <input id="W_txt" type="number" min="0" max="100" step="0.001" value="1" class="form-control slider-input">
@@ -283,16 +337,16 @@
 
           <!-- St -->
           <div class="mb-2">
-            <label class="form-label text-muted mb-1">ΔSt — vapor (kg/s)</label>
+            <label class="form-label text-muted mb-1">ΔV — abertura válvula saída vapor (%)</label>
             <div class="d-flex align-items-center gap-2">
-              <input id="St" type="range" min="0" max="100" step="0.001" value="1" class="form-range flex-grow-1">
-              <input id="St_txt" type="number" min="0" max="100" step="0.001" value="1" class="form-control slider-input">
+              <input id="St" type="range" min="-100" max="100" step="0.1" value="1" class="form-range flex-grow-1">
+              <input id="St_txt" type="number" min="-100" max="100" step="0.1" value="1" class="form-control slider-input">
             </div>
           </div>
 
           <!-- Q -->
           <div class="mb-3">
-            <label class="form-label text-muted mb-1">ΔQ — calor inicial (kW)</label>
+            <label class="form-label text-muted mb-1">ΔQ — energia de entrada (MJ)</label>
             <div class="d-flex align-items-center gap-2">
               <input id="Q" type="range" min="0" max="500" step="1" value="1" class="form-range flex-grow-1">
               <input id="Q_txt" type="number" min="0" max="500" step="1" value="1" class="form-control slider-input">
@@ -319,38 +373,288 @@
             </div>
           </div>
 
-          <h3 class="h5">PID — Controle de Pressão via Q</h3>
-
-          <!-- Kp -->
-          <div class="mb-2">
-            <label class="form-label text-muted mb-1">Kp</label>
-            <div class="d-flex align-items-center gap-2">
-              <input id="kp" type="range" min="0" max="10" step="0.001" value="0" class="form-range flex-grow-1">
-              <input id="kp_txt" type="number" min="0" max="10" step="0.001" value="0" class="form-control slider-input">
+          <hr class="my-3">
+          <div class="d-flex align-items-center justify-content-between mt-3 mb-2 flex-wrap gap-2">
+            <div class="dropdown">
+              <button id="controllerModeBtn" class="btn btn-sm btn-outline-primary dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Estratégia: Controle clássico
+              </button>
+              <ul class="dropdown-menu shadow-sm">
+                <li><button id="controllerClassicBtn" class="dropdown-item" type="button">Controle clássico</button></li>
+                <li><button id="controllerLevelFFBtn" class="dropdown-item" type="button">Nível + feed forward</button></li>
+              </ul>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="loopModeToggle">
+              <label class="form-check-label small text-muted" for="loopModeToggle" id="loopModeLabel">Malha Aberta</label>
             </div>
           </div>
 
-          <!-- Ki -->
-          <div class="mb-2">
-            <label class="form-label text-muted mb-1">Ki</label>
-            <div class="d-flex align-items-center gap-2">
-              <input id="ki" type="range" min="0" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
-              <input id="ki_txt" type="number" min="0" max="2" step="0.0001" value="0" class="form-control slider-input">
+          <div class="controller-summary mb-3 p-3 rounded-3 border" id="controllerSummaryBox">
+            <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+              <div>
+                <span class="badge text-bg-primary-subtle border border-primary-subtle text-primary-emphasis" id="controllerSummaryBadge">Controle clássico</span>
+                <h3 class="h6 mt-2 mb-1" id="controllerSummaryTitle">PID de nível e PID de pressão</h3>
+                <p class="text-muted small mb-0" id="controllerSummaryText">A malha clássica usa dois PIDs e o desacoplador entre W e Q.</p>
+              </div>
+            </div>
+            <div class="controller-summary-grid mt-3">
+              <div class="controller-role-card controller-role-primary">
+                <span class="controller-role-kicker" id="controllerPrimaryRoleKicker">PID principal</span>
+                <strong class="d-block" id="controllerPrimaryRoleTitle">PID 1 — Controle de NÍVEL L via W</strong>
+                <span class="controller-role-desc" id="controllerPrimaryRoleDesc">Fecha a malha de nível usando a referência e a saída da caldeira.</span>
+              </div>
+              <div class="controller-role-card controller-role-secondary">
+                <span class="controller-role-kicker" id="controllerSecondaryRoleKicker">PID auxiliar</span>
+                <strong class="d-block" id="controllerSecondaryRoleTitle">PID 2 — Controle de PRESSÃO P via Q</strong>
+                <span class="controller-role-desc" id="controllerSecondaryRoleDesc">Compensa a pressão e atua junto ao desacoplador.</span>
+              </div>
             </div>
           </div>
 
-          <!-- Kd -->
-          <div class="mb-2">
-            <label class="form-label text-muted mb-1">Kd</label>
-            <div class="d-flex align-items-center gap-2">
-              <input id="kd" type="range" min="0" max="5" step="0.001" value="0" class="form-range flex-grow-1">
-              <input id="kd_txt" type="number" min="0" max="5" step="0.001" value="0" class="form-control slider-input">
+          <div class="strategy-panel" id="strategyClassicPanel">
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+              <h3 class="h5 mb-0">Malha Clássica com Desacoplador</h3>
+              <button id="applyIdealGainsBtn" type="button" class="btn btn-sm btn-outline-secondary">Ganhos Ideais</button>
+            </div>
+            <p class="text-muted small mt-2 mb-2">Controle atual para nível e pressão, com desacoplamento entre W e Q.</p>
+
+            <h3 class="h6 mt-3 mb-2" style="color:#2563eb;"><strong>PID 1 — Controle de NÍVEL L via W</strong></h3>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Kp1</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kp1" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kp1_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Ki1</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="ki1" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+                <input id="ki1_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted mb-1">Kd1</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kd1" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kd1_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <h3 class="h6 mb-2" style="color:#dc2626;"><strong>PID 2 — Controle de PRESSÃO P via Q</strong></h3>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Kp2</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kp2" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kp2_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Ki2</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="ki2" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+                <input id="ki2_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Kd2</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kd2" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kd2_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+          </div>
+
+          <div class="strategy-panel hidden" id="strategyLevelFFPanel">
+            <h3 class="h5 mb-0">Malha de Nível com Feed Forward</h3>
+            <p class="text-muted small mt-2 mb-2">Dois PIDs atuando em ΔW: um controlador de seguimento de referência e um controlador feed forward para ΔSt.</p>
+
+            <h3 class="h6 mt-3 mb-2" style="color:#2563eb;"><strong>Controlador — PID de NÍVEL L via ΔW</strong></h3>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Kp</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kpCtrl" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kpCtrl_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Ki</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kiCtrl" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+                <input id="kiCtrl_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label text-muted mb-1">Kd</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kdCtrl" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kdCtrl_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <h3 class="h6 mb-2" style="color:#0f766e;"><strong>Controlador feed forward — PID via ΔSt</strong></h3>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Kp</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kpFF" type="range" min="-10" max="10" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kpFF_txt" type="number" min="-10" max="10" step="0.001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Ki</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kiFF" type="range" min="-2" max="2" step="0.0001" value="0" class="form-range flex-grow-1">
+                <input id="kiFF_txt" type="number" min="-2" max="2" step="0.0001" value="0" class="form-control slider-input">
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label text-muted mb-1">Kd</label>
+              <div class="d-flex align-items-center gap-2">
+                <input id="kdFF" type="range" min="-5" max="5" step="0.001" value="0" class="form-range flex-grow-1">
+                <input id="kdFF_txt" type="number" min="-5" max="5" step="0.001" value="0" class="form-control slider-input">
+              </div>
             </div>
           </div>
 
         </div>
       </div>
     </div>
+
+
+<!-- DIAGRAMA DE BLOCOS -->
+    <div class="col-12">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h2 class="h5 mb-1">Diagrama de Blocos do Modelo</h2>
+      <p class="text-muted small mb-3">
+        Entradas da planta: ∆F(s) é a variação da vazão mássica (kg/s) de entrada de água
+        ∆Q(s) é a variação da entrada de energia (MJ)
+        ∆V(s) representa a variação da abertura da válvula (%) de saída do vapor
+        Saídas da planta:
+        ∆L(s) é a variação do nível (m)
+        ∆P(s) é a variação da pressão (MPa)
+      </p>
+      <div class="text-center overflow-auto border rounded p-3 bg-white">
+        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100%" viewBox="0 0 689 380"
+             style="max-width:689px;height:auto;display:block;margin:0 auto;">
+          <defs/>
+          <g>
+            <path d="M 566.25 67.25 L 566.3 70 L 633.63 70" fill="none" stroke="#1e40af" stroke-width="1.5"/>
+            <path d="M 638.88 70 L 631.88 73.5 L 633.63 70 L 631.88 66.5 Z" fill="#1e40af" stroke="#1e40af"/>
+            <path d="M 566.25 101.75 L 566.3 100 L 633.63 100" fill="none" stroke="#dc2626" stroke-width="1.5"/>
+            <path d="M 638.88 100 L 631.88 103.5 L 633.63 100 L 631.88 96.5 Z" fill="#dc2626" stroke="#dc2626"/>
+            <rect x="483.75" y="50" width="82.5" height="69" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+            <text x="525" y="91" fill="#1e3a8a" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Planta</text>
+            <path d="M 218 319 L 218 322 L 319.13 322" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 324.38 322 L 317.38 325.5 L 319.13 322 L 317.38 318.5 Z" fill="#555" stroke="#555"/>
+            <rect x="168" y="289" width="50" height="60" rx="4" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+            <text x="193" y="324" fill="#713f12" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">C2</text>
+            <path d="M 217 101.5 L 243.63 101.5" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 248.88 101.5 L 241.88 105 L 243.63 101.5 L 241.88 98 Z" fill="#555" stroke="#555"/>
+            <rect x="167" y="71.5" width="50" height="60" rx="4" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+            <text x="192" y="106" fill="#713f12" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">C1</text>
+            <path d="M 307.5 200 L 307.5 227.63" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 307.5 232.88 L 304 225.88 L 307.5 227.63 L 311 225.88 Z" fill="#555" stroke="#555"/>
+            <path d="M 307.5 133.63 L 307.5 100 L 307.57 63" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 307.5 138.88 L 304 131.88 L 307.5 133.63 L 311 131.88 Z" fill="#555" stroke="#555"/>
+            <ellipse cx="307.57" cy="60" rx="3.5" ry="3.5" fill="#555"/>
+            <rect x="282.5" y="140" width="50" height="60" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+            <text x="308" y="175" fill="#14532d" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">D3</text>
+            <path d="M 374.5 140 L 374.5 81.37" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 374.5 76.12 L 378 83.12 L 374.5 81.37 L 371 83.12 Z" fill="#555" stroke="#555"/>
+            <path d="M 374.5 206.37 L 374.5 284 L 341 284" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 374.5 201.12 L 378 208.12 L 374.5 206.37 L 371 208.12 Z" fill="#555" stroke="#555"/>
+            <ellipse cx="338" cy="284" rx="3.5" ry="3.5" fill="#555"/>
+            <rect x="349.5" y="140" width="50" height="60" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+            <text x="375" y="175" fill="#14532d" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">D4</text>
+            <path d="M 460 230 L 440 230 L 440 294 L 262.5 294 L 262.5 120.37" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 262.5 115.12 L 266 122.12 L 262.5 120.37 L 259 122.12 Z" fill="#555" stroke="#555"/>
+            <path d="M 529.5 230 L 557 230" fill="none" stroke="#555" stroke-width="1.5"/>
+            <ellipse cx="560" cy="230" rx="3.5" ry="3.5" fill="#555"/>
+            <rect x="460" y="210" width="69.5" height="40" rx="4" fill="#fdf4ff" stroke="#a21caf" stroke-width="2"/>
+            <text x="495" y="234" fill="#701a75" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="bold" text-anchor="middle">CFF1</text>
+            <path d="M 460 290 L 450 290 L 450 322 L 355.87 322" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 350.62 322 L 357.62 318.5 L 355.87 322 L 357.62 325.5 Z" fill="#555" stroke="#555"/>
+            <path d="M 529.5 290 L 560 290 L 560 163" fill="none" stroke="#555" stroke-width="1.5"/>
+            <ellipse cx="560" cy="160" rx="3.5" ry="3.5" fill="#555"/>
+            <rect x="460" y="270" width="69.5" height="40" rx="4" fill="#fdf4ff" stroke="#a21caf" stroke-width="2"/>
+            <text x="495" y="294" fill="#701a75" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="bold" text-anchor="middle">CFF2</text>
+            <path d="M 337.5 310 L 337.5 284 L 307.5 284 L 307.5 265.37" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 307.5 260.12 L 311 267.12 L 307.5 265.37 L 304 267.12 Z" fill="#555" stroke="#555"/>
+            <ellipse cx="337.5" cy="322" rx="12" ry="12" fill="white" stroke="#555" stroke-width="1.5"/>
+            <text x="337.5" y="326" fill="#333" font-family="Helvetica,Arial,sans-serif" font-size="13" text-anchor="middle">+</text>
+            <path d="M 320 246.5 L 420 246.5 L 420 84.5 L 477.38 84.5" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 482.63 84.5 L 475.63 88 L 477.38 84.5 L 475.63 81 Z" fill="#555" stroke="#555"/>
+            <ellipse cx="307.5" cy="246.5" rx="12.5" ry="12.5" fill="white" stroke="#555" stroke-width="1.5"/>
+            <text x="307.5" y="251" fill="#333" font-family="Helvetica,Arial,sans-serif" font-size="13" text-anchor="middle">+</text>
+            <ellipse cx="262.5" cy="101.5" rx="12.5" ry="12.5" fill="white" stroke="#555" stroke-width="1.5"/>
+            <text x="262.5" y="106" fill="#333" font-family="Helvetica,Arial,sans-serif" font-size="13" text-anchor="middle">+</text>
+            <ellipse cx="374.5" cy="62.5" rx="12.5" ry="12.5" fill="white" stroke="#555" stroke-width="1.5"/>
+            <text x="374.5" y="67" fill="#333" font-family="Helvetica,Arial,sans-serif" font-size="13" text-anchor="middle">+</text>
+            <path d="M 228 20 L 680 20 L 680 160 L 430 160 L 430 106.8 L 477.38 106.76" fill="none" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <path d="M 482.63 106.75 L 475.64 110.26 L 477.38 106.76 L 475.63 103.26 Z" fill="#0d9488" stroke="#0d9488"/>
+            <rect x="168" y="0" width="60" height="28" rx="4" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+            <text x="198" y="18" fill="#0f766e" font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" text-anchor="middle">∆V(s)</text>
+            <path d="M 110.5 337.87 L 110.5 370 L 600 370 L 600 103" fill="none" stroke="#dc2626" stroke-width="1.5"/>
+            <path d="M 110.5 332.62 L 114 339.62 L 110.5 337.87 L 107 339.62 Z" fill="#dc2626" stroke="#dc2626"/>
+            <ellipse cx="600" cy="100" rx="3.5" ry="3.5" fill="#dc2626"/>
+            <path d="M 110.5 80.13 L 110.5 40 L 600 40 L 600 67" fill="none" stroke="#1e40af" stroke-width="1.5"/>
+            <path d="M 110.5 85.38 L 107 78.38 L 110.5 80.13 L 114 78.38 Z" fill="#1e40af" stroke="#1e40af"/>
+            <ellipse cx="600" cy="70" rx="3.5" ry="3.5" fill="#1e40af"/>
+            <path d="M 60 99 L 91.63 99" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 96.88 99 L 89.88 102.5 L 91.63 99 L 89.88 95.5 Z" fill="#555" stroke="#555"/>
+            <text x="30" y="103" fill="#1e3a8a" font-family="Helvetica,Arial,sans-serif" font-size="11" font-style="italic" text-anchor="middle">Ref 1 L(s)</text>
+            <ellipse cx="110.5" cy="99" rx="12.5" ry="12.5" fill="white" stroke="#555" stroke-width="1.5"/>
+            <path d="M 123 99 L 144.33 99 L 159.28 99.15" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 164.53 99.21 L 157.5 102.64 L 159.28 99.15 L 157.57 95.64 Z" fill="#555" stroke="#555"/>
+            <path d="M 60 319 L 91.63 319" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 96.88 319 L 89.88 322.5 L 91.63 319 L 89.88 315.5 Z" fill="#555" stroke="#555"/>
+            <text x="30" y="323" fill="#7c2d12" font-family="Helvetica,Arial,sans-serif" font-size="11" font-style="italic" text-anchor="middle">Ref 2 P(s)</text>
+            <ellipse cx="110.5" cy="319" rx="12.5" ry="12.5" fill="white" stroke="#555" stroke-width="1.5"/>
+            <path d="M 123 319 L 161.63 319" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 166.88 319 L 159.88 322.5 L 161.63 319 L 159.88 315.5 Z" fill="#555" stroke="#555"/>
+            <path d="M 262.5 89 L 262.5 60.3 L 355.63 60.28" fill="none" stroke="#555" stroke-width="1.5"/>
+            <path d="M 360.88 60.28 L 353.88 63.78 L 355.63 60.28 L 353.88 56.78 Z" fill="#555" stroke="#555"/>
+            <path d="M 387 62.5 L 434.84 62.5 L 476.31 62.37" fill="none" stroke="#1e40af" stroke-width="1.5"/>
+            <path d="M 481.56 62.35 L 474.57 65.88 L 476.31 62.37 L 474.55 58.88 Z" fill="#1e40af" stroke="#1e40af"/>
+            <text x="450" y="59" fill="#1e40af" font-family="Helvetica,Arial,sans-serif" font-size="10" font-style="italic" text-anchor="middle">∆F(s)</text>
+            <text x="450" y="79" fill="#555" font-family="Helvetica,Arial,sans-serif" font-size="10" font-style="italic" text-anchor="middle">∆Q(s)</text>
+            <text x="450" y="103" fill="#0d9488" font-family="Helvetica,Arial,sans-serif" font-size="10" font-style="italic" text-anchor="middle">∆V(s)</text>
+            <text x="660" y="73" fill="#1e40af" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="bold" text-anchor="middle">∆L(s)</text>
+            <text x="660" y="103" fill="#dc2626" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="bold" text-anchor="middle">∆P(s)</text>
+            <text x="103" y="103" fill="#333" font-family="Helvetica,Arial,sans-serif" font-size="11" text-anchor="middle">+</text>
+            <text x="111" y="93" fill="#dc2626" font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" text-anchor="middle">−</text>
+            <text x="103" y="323" fill="#333" font-family="Helvetica,Arial,sans-serif" font-size="11" text-anchor="middle">+</text>
+            <text x="111" y="330" fill="#dc2626" font-family="Helvetica,Arial,sans-serif" font-size="11" font-weight="bold" text-anchor="middle">−</text>
+          </g>
+        </svg>
+      </div>
+      <div class="d-flex flex-wrap gap-3 mt-3 justify-content-center" style="font-size:0.82rem;">
+        <span><span style="display:inline-block;width:14px;height:14px;background:#fef9c3;border:2px solid #ca8a04;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>C1, C2 — Controladores PID</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#f0fdf4;border:2px solid #16a34a;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>D3, D4 — Desacopladores</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#fdf4ff;border:2px solid #a21caf;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>CFF1, CFF2 — Feed Forward</span>
+        <span><span style="display:inline-block;width:14px;height:14px;background:#dbeafe;border:2px solid #2563eb;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>Planta</span>
+        <span style="color:#1e40af;">— ∆L(s)</span>
+        <span style="color:#dc2626;">— ∆P(s)</span>
+        <span style="color:#0d9488;">--- ∆V(s) perturbação</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 
     <!-- Gráfico: Nível total + componentes -->
@@ -390,6 +694,17 @@
         <div class="card-body">
           <h2 class="h5">Entradas do Sistema</h2>
           <canvas id="chartEntradas" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico: Ações de Controle e Desacoplador -->
+    <div class="col-lg-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="h5">Ações de Controle & Desacoplador</h2>
+          <p class="text-muted small">u1 e u2 transformadas pelo desacoplador em ΔF e ΔQ. ΔV permanece perturbação..</p>
+          <canvas id="chartControles" height="140"></canvas>
         </div>
       </div>
     </div>

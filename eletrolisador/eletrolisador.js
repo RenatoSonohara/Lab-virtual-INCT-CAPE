@@ -94,13 +94,12 @@ class EletrolisadorJS {
     this.Tamb_K   = Tamb_C + 273.15;
     this.refT     = refT;
     this.T_stack  = this.Tamb_K;
-
     // PID
     this.Kp = pid.kp;
     this.Ki = pid.ki;
     this.Kd = pid.kd;
     this.acaoIntegral = 0;
-    this._lastT = this.T_stack;
+    this._lastErro = 0;
     this.sinalControle = 0;
   }
 
@@ -111,18 +110,16 @@ class EletrolisadorJS {
   }
 
   controleTemperatura(T) {
-    const uMin = 0, uMax = 500;
-    const erro  = this.refT - T;
-    const dMeas = (T - this._lastT) / this.DELTA_T;
-    this._lastT = T;
+    const erro = this.refT - T;
+    const dErro = (erro - this._lastErro) / this.DELTA_T;
+    this._lastErro = erro;
 
-    this.acaoIntegral += this.Ki * erro * this.DELTA_T;
-    this.acaoIntegral  = Math.max(uMin, Math.min(uMax, this.acaoIntegral));
+    this.acaoIntegral += erro * this.DELTA_T;
+    const iTerm = this.Ki * this.acaoIntegral;
 
-    let u = this.Kp * erro + this.acaoIntegral - this.Kd * dMeas;
-    u = Math.max(uMin, Math.min(uMax, u));
+    const u = this.Kp * erro + iTerm + this.Kd * dErro;
     this.sinalControle = u;
-    this.I = u;
+    this.Q_ctrl = u;
     return erro;
   }
 
@@ -162,6 +159,29 @@ class EletrolisadorJS {
     if (ki !== undefined) this.Ki = ki;
     if (kd !== undefined) this.Kd = kd;
   }
+
+  resetPID() {
+    this.acaoIntegral = 0;
+    this._lastErro = 0;
+    this.sinalControle = this.Q_ctrl;
+  }
+
+  currentState() {
+    const Vcell = this._calcVcell(this.I, this.T_stack);
+    const nH2 = (this.I > 0) ? (this.Ncells * this.I) / (2 * F) : 0;
+    return {
+      Vcell,
+      T_stack: this.T_stack,
+      nH2,
+      I: this.I,
+      Ncells: this.Ncells,
+      Q_ctrl: this.Q_ctrl,
+      Tamb_C: this.Tamb_K - 273.15,
+      sinalControle: this.sinalControle,
+      erroT: this.refT - this.T_stack,
+    };
+  }
+
 }
 
 // ============================================================
@@ -169,6 +189,7 @@ class EletrolisadorJS {
 // ============================================================
 function q(s) { return document.querySelector(s); }
 function fmt(x, d=4) { return Number(x).toFixed(d); }
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 // ============================================================
 // CONSTANTES
@@ -189,12 +210,13 @@ const els = {
   I_txt:      q('#I_txt'),    Q_txt:      q('#Q_txt'),    Tamb_txt:   q('#Tamb_txt'),
   refT_txt:   q('#refT_txt'), Ncells_txt: q('#Ncells_txt'),
   kp_txt:     q('#kp_txt'),   ki_txt:     q('#ki_txt'),   kd_txt:     q('#kd_txt'),
+  loopModeToggle: q('#loopModeToggle'),
+  loopModeLabel:  q('#loopModeLabel'),
 
   start:       q('#startBtn'),
   reset:       q('#resetBtn'),
   runBatch:    q('#runBatchBtn'),
   simDuration: q('#simDuration'),
-
   kpi_V:    q('#kpi_V'),
   kpi_T:    q('#kpi_T'),
   kpi_nH2:  q('#kpi_nH2'),
@@ -215,29 +237,63 @@ const DEFAULTS = {
 // ============================================================
 // SINCRONIZAÇÃO SLIDER <-> TEXTO
 // ============================================================
+function readParamValue(sliderEl, txtEl) {
+  const txtV = Number(txtEl?.value);
+  if (Number.isFinite(txtV)) return txtV;
+  return Number(sliderEl?.value ?? 0);
+}
+
 const pares = [
   [els.I,      els.I_txt],
   [els.Q,      els.Q_txt],
   [els.Tamb,   els.Tamb_txt],
   [els.refT,   els.refT_txt],
   [els.Ncells, els.Ncells_txt],
-  [els.kp,     els.kp_txt],
-  [els.ki,     els.ki_txt],
-  [els.kd,     els.kd_txt],
 ];
 
 pares.forEach(([slider, txt]) => {
   if (!slider || !txt) return;
   slider.addEventListener('input', () => { txt.value = slider.value; });
-  const sync = () => {
+  const syncSliderOnly = () => {
     const v = Number(txt.value);
     if (!Number.isFinite(v)) return;
     slider.value = Math.max(Number(slider.min), Math.min(Number(slider.max), v));
-    txt.value = slider.value;
   };
-  txt.addEventListener('change', sync);
-  txt.addEventListener('keydown', e => { if (e.key === 'Enter') sync(); });
+  txt.addEventListener('input', syncSliderOnly);
+  txt.addEventListener('change', syncSliderOnly);
+  txt.addEventListener('keydown', e => { if (e.key === 'Enter') syncSliderOnly(); });
 });
+
+const gainPairs = [
+  [els.kp, els.kp_txt],
+  [els.ki, els.ki_txt],
+  [els.kd, els.kd_txt],
+];
+
+gainPairs.forEach(([slider, txt]) => {
+  if (!slider || !txt) return;
+
+  // Ao mexer no slider, o ganho passa a ser exatamente o valor do slider.
+  slider.addEventListener('input', () => { txt.value = slider.value; });
+
+  // Ao editar texto, mantém o valor digitado para o ganho e satura apenas a posição visual do slider.
+  const syncGainSliderOnly = () => {
+    const v = Number(txt.value);
+    if (!Number.isFinite(v)) return;
+    const clamped = clamp(v, Number(slider.min), Number(slider.max));
+    slider.value = clamped;
+  };
+
+  txt.addEventListener('input', syncGainSliderOnly);
+  txt.addEventListener('change', syncGainSliderOnly);
+  txt.addEventListener('keydown', e => { if (e.key === 'Enter') syncGainSliderOnly(); });
+});
+
+function gainFromText(txtEl, sliderEl) {
+  const v = Number(txtEl?.value);
+  if (Number.isFinite(v)) return v;
+  return Number(sliderEl?.value ?? 0);
+}
 
 // ============================================================
 // UI
@@ -255,11 +311,17 @@ function updateKPIs(s) {
   els.kpi_V.textContent    = fmt(s.Vcell, 4) + ' V';
   els.kpi_T.textContent    = fmt(s.T_stack, 2) + ' K';
   els.kpi_nH2.textContent  = fmt(s.nH2, 6) + ' mol/s';
-  els.kpi_refT.textContent = fmt(Number(els.refT.value), 1) + ' K';
+  els.kpi_refT.textContent = fmt(readParamValue(els.refT, els.refT_txt), 1) + ' K';
 }
 
 function resetKPIs() {
   ['kpi_V','kpi_T','kpi_nH2','kpi_refT'].forEach(id => els[id].textContent = '—');
+}
+
+function setLoopMode(closedLoop) {
+  if (!els.loopModeToggle || !els.loopModeLabel) return;
+  els.loopModeToggle.checked = closedLoop;
+  els.loopModeLabel.textContent = closedLoop ? 'Malha Fechada' : 'Malha Aberta';
 }
 
 // ============================================================
@@ -305,10 +367,6 @@ function initCharts() {
 function pushPoint(chart, lbl, arrs) {
   chart.data.labels.push(lbl);
   chart.data.datasets.forEach((ds, i) => ds.data.push(arrs[i] ?? null));
-  while (chart.data.labels.length > MAX_POINTS) {
-    chart.data.labels.shift();
-    chart.data.datasets.forEach(ds => ds.data.shift());
-  }
   chart.update('quiet');
 }
 
@@ -332,19 +390,22 @@ let _stepCount = 0;
 // INSTÂNCIA
 // ============================================================
 function createSim() {
+  const kp = gainFromText(els.kp_txt, els.kp);
+  const ki = gainFromText(els.ki_txt, els.ki);
+  const kd = gainFromText(els.kd_txt, els.kd);
   return new EletrolisadorJS({
-    I:      Number(els.I.value),
-    Q:      Number(els.Q.value),
-    Ncells: Number(els.Ncells.value),
-    Tamb_C: Number(els.Tamb.value),
-    refT:   Number(els.refT.value),
-    pid:    { kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) },
+    I:      readParamValue(els.I, els.I_txt),
+    Q:      readParamValue(els.Q, els.Q_txt),
+    Ncells: readParamValue(els.Ncells, els.Ncells_txt),
+    Tamb_C: readParamValue(els.Tamb, els.Tamb_txt),
+    refT:   readParamValue(els.refT, els.refT_txt),
+    pid:    { kp, ki, kd },
     consts: { ...C },
   });
 }
 
-function pidAtivo() {
-  return Number(els.kp.value) > 0 || Number(els.ki.value) > 0 || Number(els.kd.value) > 0;
+function closedLoopAtivo() {
+  return Boolean(els.loopModeToggle?.checked);
 }
 
 // ============================================================
@@ -356,6 +417,10 @@ function startRealtime() {
   initCharts();
   _stepCount = 0;
   sim = createSim();
+  const s0 = sim.currentState();
+  _pushAllCharts(0, s0, sim.refT);
+  updateKPIs(s0);
+  updateViz(s0);
   uiRunning(true);
   const intervalMs = 16;
   const stepsPerInterval = Math.max(1, Math.round(intervalMs / (C.DELTA_T * 1000)));
@@ -371,23 +436,44 @@ function stopRealtime() {
 
 function tickRealtime(stepsPerInterval) {
   if (!sim) return;
-  sim.setI(Number(els.I.value));
-  sim.setQ(Number(els.Q.value));
-  sim.setNcells(Number(els.Ncells.value));
-  sim.setTamb(Number(els.Tamb.value));
-  sim.setRefT(Number(els.refT.value));
-  sim.setGains({ kp: Number(els.kp.value), ki: Number(els.ki.value), kd: Number(els.kd.value) });
+  const closedLoop = closedLoopAtivo();
+
+  sim.setI(readParamValue(els.I, els.I_txt));
+  if (!closedLoop) sim.setQ(readParamValue(els.Q, els.Q_txt));
+  sim.setNcells(readParamValue(els.Ncells, els.Ncells_txt));
+  sim.setTamb(readParamValue(els.Tamb, els.Tamb_txt));
+  sim.setRefT(readParamValue(els.refT, els.refT_txt));
+  sim.setGains({
+    kp: gainFromText(els.kp_txt, els.kp),
+    ki: gainFromText(els.ki_txt, els.ki),
+    kd: gainFromText(els.kd_txt, els.kd),
+  });
+
+  els.I.value = clamp(sim.I, Number(els.I.min), Number(els.I.max));
+  els.I_txt.value = sim.I;
+  if (!closedLoop) {
+    els.Q.value = clamp(sim.Q_ctrl, Number(els.Q.min), Number(els.Q.max));
+    els.Q_txt.value = sim.Q_ctrl;
+  }
 
   let lastS;
   for (let i = 0; i < stepsPerInterval; i++) {
+    if (closedLoop) sim.controleTemperatura(sim.T_stack);
     lastS = sim.stepOnce();
-    if (pidAtivo()) sim.controleTemperatura(lastS.T_stack);
     _stepCount++;
     if (_stepCount % STEPS_PER_POINT === 0) {
       const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
       _pushAllCharts(tSec, lastS, sim.refT);
     }
   }
+
+  if (closedLoop && lastS) {
+    const qVal = sim.Q_ctrl;
+    els.Q.value = clamp(qVal, Number(els.Q.min), Number(els.Q.max));
+    els.Q_txt.value = qVal.toFixed(1);
+    lastS.Q_ctrl = qVal;
+  }
+
   updateKPIs(lastS);
   updateViz(lastS);
 }
@@ -404,16 +490,27 @@ function runBatch() {
   _stepCount = 0;
 
   const bSim = createSim();
+  const s0 = bSim.currentState();
+  _pushAllCharts(0, s0, bSim.refT);
+  const closedLoop = closedLoopAtivo();
   let lastS;
   for (let i = 0; i < totalSteps; i++) {
+    if (closedLoop) bSim.controleTemperatura(bSim.T_stack);
     lastS = bSim.stepOnce();
-    if (pidAtivo()) bSim.controleTemperatura(lastS.T_stack);
     _stepCount++;
     if (_stepCount % STEPS_PER_POINT === 0) {
       const tSec = parseFloat((_stepCount * C.DELTA_T).toFixed(1));
       _pushAllCharts(tSec, lastS, bSim.refT);
     }
   }
+
+  if (closedLoop && lastS) {
+    const qVal = bSim.Q_ctrl;
+    els.Q.value = clamp(qVal, Number(els.Q.min), Number(els.Q.max));
+    els.Q_txt.value = qVal.toFixed(1);
+    lastS.Q_ctrl = qVal;
+  }
+
   updateKPIs(lastS);
   updateViz(lastS);
   els.status.textContent = `✅ Simulado: ${durS} s`;
@@ -437,6 +534,7 @@ function fullReset() {
     if (sliderMap[k]) sliderMap[k].value = DEFAULTS[k];
     if (txtMap[k])    txtMap[k].value    = DEFAULTS[k];
   });
+  setLoopMode(false);
   updateViz({ Vcell: 0, T_stack: DEFAULTS.Tamb + 273.15, nH2: 0, Ncells: DEFAULTS.Ncells });
 }
 
@@ -461,6 +559,18 @@ function updateViz(s) {
 els.start.addEventListener('click', () => { timer ? stopRealtime() : startRealtime(); });
 els.reset.addEventListener('click', fullReset);
 els.runBatch.addEventListener('click', () => { if (timer) stopRealtime(); runBatch(); });
+els.loopModeToggle?.addEventListener('change', () => {
+  setLoopMode(els.loopModeToggle.checked);
+  if (sim) sim.resetPID();
+});
+
+const gainInputs = [els.kp, els.kp_txt, els.ki, els.ki_txt, els.kd, els.kd_txt];
+gainInputs.forEach(el => el?.addEventListener('input', () => setLoopMode(true)));
+gainInputs.forEach(el => el?.addEventListener('change', () => setLoopMode(true)));
+
+els.Q?.addEventListener('input', () => setLoopMode(false));
+els.Q_txt?.addEventListener('input', () => setLoopMode(false));
+els.Q_txt?.addEventListener('change', () => setLoopMode(false));
 
 document.querySelectorAll('[data-coming-soon]').forEach(el =>
   el.addEventListener('click', e => { e.preventDefault(); showToast('Em breve…'); })
@@ -473,6 +583,7 @@ function showToast(msg) {
 
 function boot() {
   initCharts();
+  setLoopMode(false);
   updateViz({ Vcell: 0, T_stack: DEFAULTS.Tamb + 273.15, nH2: 0, Ncells: DEFAULTS.Ncells });
 }
 boot();
