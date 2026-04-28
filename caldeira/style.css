@@ -255,12 +255,18 @@ body, html {
 .sim-grid-container {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  /* reduzir a altura mínima para evitar blocos desnecessariamente altos */
-  grid-template-rows: minmax(160px, 40vh) minmax(160px, 40vh) auto;
+  /* Linhas guiadas pelo conteudo da coluna esquerda (controle + indicadores). */
+  grid-template-rows: auto auto auto;
   gap: 1rem;
 }
 
 .sim-grid-item .card { height: 100%; min-height: 0; }
+
+/* Evita espaço em branco interno nos blocos da coluna esquerda */
+.sim-control .card,
+.sim-indicators .card {
+  height: auto;
+}
 
 /* Limitar alturas de SVGs grandes que podem forçar cartões vazios a crescer */
 .sim-diagrama .card-body { min-height: 120px; }
@@ -274,9 +280,11 @@ body, html {
 .sim-diagrama { grid-column: 1 / span 2; grid-row: 3; }
 .sim-controladores { grid-column: 3; grid-row: 3; }
 
-/* Garantir alturas visualmente parecidas entre controles/indicadores/viz */
-.sim-control .card, .sim-indicators .card, .sim-viz .card {
-  display: flex; flex-direction: column; height: 100%;
+/* Mantem a visualizacao ocupando altura completa; controles usam altura de conteudo */
+.sim-viz .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 .sim-viz .caldeira-viz-wrap { min-height: 100%; }
 
