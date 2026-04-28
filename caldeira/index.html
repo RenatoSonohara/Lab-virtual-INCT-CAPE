@@ -583,26 +583,26 @@
           </div>
         </div>
 
-
-
+  </div>
+  <div class="row g-3">
     <!-- Gráfico: Nível total + componentes -->
-    <div class="col-12">
+    <div class="col-12 col-lg-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Nível L (m) — Total e Componentes</h2>
           <p class="text-muted small mb-2">Gráfico atualizado durante a simulação — execute 'Iniciar' para ver dados.</p>
-          <canvas id="chartL" height="100"></canvas>
+          <canvas id="chartL" height="140"></canvas>
         </div>
       </div>
     </div>
 
     <!-- Gráfico: Pressão total + componentes -->
-    <div class="col-12">
+    <div class="col-12 col-lg-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Pressão P (Pa) — Total e Componentes</h2>
           <p class="text-muted small mb-2">Gráfico atualizado durante a simulação — execute 'Iniciar' para ver dados.</p>
-          <canvas id="chartP" height="100"></canvas>
+          <canvas id="chartP" height="140"></canvas>
         </div>
       </div>
     </div>
@@ -619,7 +619,7 @@
   -->
 
     <!-- Gráfico: Entradas -->
-    <div class="col-lg-12">
+    <div class="col-12 col-lg-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Entradas do Sistema</h2>
@@ -630,17 +630,15 @@
     </div>
 
     <!-- Gráfico: Ações de Controle e Desacoplador -->
-    <div class="col-lg-12">
+    <div class="col-12 col-lg-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Ações de Controle & Desacoplador</h2>
-          <p class="text-muted small">u1 e u2 transformadas pelo desacoplador em ΔF e ΔQ. ΔV permanece perturbação.</p>
           <p class="text-muted small mb-2">Gráfico atualizado durante a simulação — execute 'Iniciar' para ver ações de controle.</p>
           <canvas id="chartControles" height="140"></canvas>
         </div>
       </div>
     </div>
-
   </div>
 </main>
 
