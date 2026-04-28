@@ -251,6 +251,41 @@ body, html {
   }
 }
 
+/* ====== LAYOUT: Simulador Caldeira (grid solicitado) ====== */
+.sim-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  /* reduzir a altura mínima para evitar blocos desnecessariamente altos */
+  grid-template-rows: minmax(160px, 40vh) minmax(160px, 40vh) auto;
+  gap: 1rem;
+}
+
+.sim-grid-item .card { height: 100%; min-height: 0; }
+
+/* Limitar alturas de SVGs grandes que podem forçar cartões vazios a crescer */
+.sim-diagrama .card-body { min-height: 120px; }
+.sim-diagrama svg { max-height: 320px; width: 100%; height: auto; display: block; margin: 0 auto; }
+
+/* Área específica (mapear para o HTML reorganizado) */
+.sim-control { grid-column: 1; grid-row: 1; }
+.sim-indicators { grid-column: 1; grid-row: 2; }
+.sim-viz { grid-column: 2; grid-row: 1 / span 2; }
+.sim-entradas { grid-column: 3; grid-row: 1 / span 2; }
+.sim-diagrama { grid-column: 1 / span 2; grid-row: 3; }
+.sim-controladores { grid-column: 3; grid-row: 3; }
+
+/* Garantir alturas visualmente parecidas entre controles/indicadores/viz */
+.sim-control .card, .sim-indicators .card, .sim-viz .card {
+  display: flex; flex-direction: column; height: 100%;
+}
+.sim-viz .caldeira-viz-wrap { min-height: 100%; }
+
+/* Em telas pequenas, reverter para empilhamento linear */
+@media (max-width: 991.98px) {
+  .sim-grid-container { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .sim-control, .sim-indicators, .sim-viz, .sim-entradas, .sim-diagrama, .sim-controladores { grid-column: 1; grid-row: auto; }
+}
+
 /* ====== TOAST ====== */
 .toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
