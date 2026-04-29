@@ -443,6 +443,7 @@
                   <ul class="dropdown-menu shadow-sm">
                     <li><button id="controllerClassicBtn" class="dropdown-item" type="button">Controle clássico</button></li>
                     <li><button id="controllerLevelFFBtn" class="dropdown-item" type="button">Nível + feed forward</button></li>
+                    <li><button id="controllerCascataBtn" class="dropdown-item" type="button">Cascata com desacoplamento</button></li>
                   </ul>
                 </div>
                 <div class="form-check form-switch m-0">
@@ -582,6 +583,69 @@
             </div>
           </div>
         </div>
+
+              <!-- ESTRATÉGIA 3: CASCATA COM DESACOPLAMENTO E FEEDFORWARD -->
+              <div class="strategy-panel hidden" id="strategyCascataPanel">
+                <h3 class="h5 mb-0">Estratégia em Cascata</h3>
+                <p class="text-muted small mt-2 mb-3">Controladores C1 e C2 com compensadores de acoplamento (D3, D4) e feed forwards pré-sintonizados. Os ganhos estão fixos.</p>
+
+                <div class="alert alert-info alert-sm mb-3">
+                  <strong>ℹ️ Informação:</strong> Esta estratégia utiliza controladores em cascata com parâmetros pré-definidos otimizados.
+                  Os valores dos ganhos não são ajustáveis (sliders desabilitados) para manter a estabilidade do sistema.
+                </div>
+
+                <h3 class="h6 mt-3 mb-2" style="color:#2563eb;"><strong>C1 — Controlador de NÍVEL L</strong></h3>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted mb-1">Kp (C1): 1.0779e3 — Feed Forward + Desacoplador</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted mb-1">Ki (C1): 128.87</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label text-muted mb-1">Kd (C1): 0.51824</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <h3 class="h6 mb-2" style="color:#dc2626;"><strong>C2 — Controlador de PRESSÃO P</strong></h3>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted mb-1">Kp (C2): 24.9688 — Feed Forward + Desacoplador</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label text-muted mb-1">Ki (C2): 0.1040</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="alert alert-sm text-muted">
+                  <small>
+                    <strong>Estrutura:</strong> 
+                    ΔF = C1 + FF1 + D1 (desacoplador de nível)<br>
+                    ΔV = C2 + FF2 + D2 (desacoplador de pressão)
+                  </small>
+                </div>
+              </div>
 
   </div>
   <div class="row g-3">
