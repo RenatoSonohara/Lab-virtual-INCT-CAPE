@@ -712,34 +712,52 @@
 
 <!-- Modal do Step -->
 <div class="modal fade" id="stepModal" tabindex="-1" aria-labelledby="stepModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-sm">
+  <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h1 class="modal-title fs-5" id="stepModalLabel">Configuração do Step</h1>
+        <h1 class="modal-title fs-5" id="stepModalLabel">Configuração do Step (até 2 passos)</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body">
+        <!-- STEP 1 -->
+        <h5 class="mb-3">Passo 1</h5>
         <div class="mb-3">
-          <label for="stepTime" class="form-label">Tempo do Step (s):</label>
-          <input type="number" class="form-control" id="stepTime" value="10" min="0" step="0.1">
+          <label for="stepTime1" class="form-label">Tempo do Step 1 (s):</label>
+          <input type="number" class="form-control" id="stepTime1" value="10" min="0" step="0.1">
         </div>
         <div class="mb-3">
-          <label for="stepInitialValue" class="form-label">Valor inicial:</label>
-          <input type="number" class="form-control" id="stepInitialValue" value="1" step="0.1">
+          <label for="stepInitialValue1" class="form-label">Valor inicial:</label>
+          <input type="number" class="form-control" id="stepInitialValue1" value="1" step="0.1">
         </div>
         <div class="mb-3">
-          <label for="stepFinalValue" class="form-label">Valor final:</label>
-          <input type="number" class="form-control" id="stepFinalValue" value="5" step="0.1">
+          <label for="stepFinalValue1" class="form-label">Valor final do Passo 1:</label>
+          <input type="number" class="form-control" id="stepFinalValue1" value="5" step="0.1">
         </div>
+
+        <hr class="my-4">
+
+        <!-- STEP 2 -->
+        <h5 class="mb-3">Passo 2 (opcional)</h5>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="stepEnable2">
+          <label class="form-check-label" for="stepEnable2">
+            Habilitar segundo passo
+          </label>
+        </div>
+        <div class="mb-3">
+          <label for="stepTime2" class="form-label">Tempo do Step 2 (s):</label>
+          <input type="number" class="form-control" id="stepTime2" value="20" min="0" step="0.1" disabled>
+        </div>
+        <div class="mb-3">
+          <label for="stepFinalValue2" class="form-label">Valor final do Passo 2:</label>
+          <input type="number" class="form-control" id="stepFinalValue2" value="3" step="0.1" disabled>
+        </div>
+
+        <hr class="my-3">
+
         <div class="mb-3">
           <label for="stepSampleTime" class="form-label">Tempo de amostra (s):</label>
           <input type="number" class="form-control" id="stepSampleTime" value="0.1" min="0.1" step="0.1">
-        </div>
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="stepInterpreteVector" checked>
-          <label class="form-check-label" for="stepInterpreteVector">
-            Interpretar parâmetros de vetor como 1-D
-          </label>
         </div>
       </div>
       <div class="modal-footer d-flex gap-2 justify-content-between">

@@ -1082,12 +1082,20 @@ let _batchTimer = null;
 // ============================================================
 let stepState = {
   enabled: false,
-  stepTime: 10,
-  initialValue: 1,
-  finalValue: 5,
   sampleTime: 0.1,
   elapsedTime: 0,
-  inOriginalPhase: true
+  step1: {
+    time: 10,
+    initialValue: 1,
+    finalValue: 5,
+    completed: false
+  },
+  step2: {
+    time: 20,
+    finalValue: 3,
+    enabled: false,
+    completed: false
+  }
 };
 
 // ============================================================
@@ -1416,7 +1424,8 @@ function fullReset() {
   // Reinicializar estado do Step
   stepState.enabled = false;
   stepState.elapsedTime = 0;
-  stepState.inOriginalPhase = true;
+  stepState.step1.completed = false;
+  stepState.step2.completed = false;
   updateStepUI();
 
   updateViz({ L: 0, P: 0, Lf: 0, Ls: 0, LQ: 0, u1_apos_desacoplador: 0, u2_apos_desacoplador: 0 });
@@ -1485,22 +1494,33 @@ function updateViz(s) {
 // ============================================================
 function applyStepConfig() {
   // Ler valores do modal
-  const stepTime = parseFloat(document.getElementById('stepTime')?.value || '10');
-  const initialValue = parseFloat(document.getElementById('stepInitialValue')?.value || '1');
-  const finalValue = parseFloat(document.getElementById('stepFinalValue')?.value || '5');
+  const stepTime1 = parseFloat(document.getElementById('stepTime1')?.value || '10');
+  const initialValue = parseFloat(document.getElementById('stepInitialValue1')?.value || '1');
+  const finalValue1 = parseFloat(document.getElementById('stepFinalValue1')?.value || '5');
   const sampleTime = parseFloat(document.getElementById('stepSampleTime')?.value || '0.1');
 
-  // Arredondar stepTime para o múltiplo mais próximo de sampleTime
-  const roundedStepTime = Math.round(stepTime / sampleTime) * sampleTime;
+  const enable2 = document.getElementById('stepEnable2')?.checked || false;
+  const stepTime2 = parseFloat(document.getElementById('stepTime2')?.value || '20');
+  const finalValue2 = parseFloat(document.getElementById('stepFinalValue2')?.value || '3');
+
+  // Arredondar step times para o múltiplo mais próximo de sampleTime
+  const roundedStepTime1 = Math.round(stepTime1 / sampleTime) * sampleTime;
+  const roundedStepTime2 = Math.round(stepTime2 / sampleTime) * sampleTime;
 
   // Atualizar estado
   stepState.enabled = true;
-  stepState.stepTime = roundedStepTime;
-  stepState.initialValue = initialValue;
-  stepState.finalValue = finalValue;
   stepState.sampleTime = sampleTime;
   stepState.elapsedTime = 0;
-  stepState.inOriginalPhase = true;
+
+  stepState.step1.time = roundedStepTime1;
+  stepState.step1.initialValue = initialValue;
+  stepState.step1.finalValue = finalValue1;
+  stepState.step1.completed = false;
+
+  stepState.step2.time = roundedStepTime2;
+  stepState.step2.finalValue = finalValue2;
+  stepState.step2.enabled = enable2;
+  stepState.step2.completed = false;
 
   // Aplicar valor inicial
   els.St.value = initialValue;
@@ -1513,13 +1533,15 @@ function applyStepConfig() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
   if (modal) modal.hide();
 
-  els.status.textContent = '✓ Step configurado e ativado';
+  const stepInfo = enable2 ? `com 2 passos` : `com 1 passo`;
+  els.status.textContent = `✓ Step configurado ${stepInfo} e ativado`;
 }
 
 function disableStep() {
   stepState.enabled = false;
   stepState.elapsedTime = 0;
-  stepState.inOriginalPhase = true;
+  stepState.step1.completed = false;
+  stepState.step2.completed = false;
 
   // Limpar estilos
   updateStepUI();
@@ -1568,12 +1590,24 @@ function updateStepDuringSimulation(elapsedTime) {
 
   stepState.elapsedTime = elapsedTime;
 
-  if (stepState.inOriginalPhase && elapsedTime >= stepState.stepTime) {
-    // Transição para a segunda fase
-    stepState.inOriginalPhase = false;
-    els.St.value = stepState.finalValue;
-    els.St_txt.value = stepState.finalValue;
-    if (sim) sim.setSt(stepState.finalValue);
+  // Processar primeiro passo
+  if (!stepState.step1.completed && elapsedTime >= stepState.step1.time) {
+    stepState.step1.completed = true;
+    els.St.value = stepState.step1.finalValue;
+    els.St_txt.value = stepState.step1.finalValue;
+    if (sim) sim.setSt(stepState.step1.finalValue);
+  }
+
+  // Processar segundo passo (se habilitado)
+  if (
+    stepState.step2.enabled &&
+    !stepState.step2.completed &&
+    elapsedTime >= stepState.step2.time
+  ) {
+    stepState.step2.completed = true;
+    els.St.value = stepState.step2.finalValue;
+    els.St_txt.value = stepState.step2.finalValue;
+    if (sim) sim.setSt(stepState.step2.finalValue);
   }
 }
 
@@ -1640,6 +1674,14 @@ document.getElementById('stepDisableBtn')?.addEventListener('click', disableStep
 // Detectar mudanças no slider ΔV enquanto step ativo
 els.St?.addEventListener('input', handleStepSliderChange);
 els.St_txt?.addEventListener('input', handleStepSliderChange);
+
+// Enable/disable second step inputs based on checkbox
+document.getElementById('stepEnable2')?.addEventListener('change', (e) => {
+  const stepTime2Input = document.getElementById('stepTime2');
+  const stepFinalValue2Input = document.getElementById('stepFinalValue2');
+  if (stepTime2Input) stepTime2Input.disabled = !e.target.checked;
+  if (stepFinalValue2Input) stepFinalValue2Input.disabled = !e.target.checked;
+});
 
 // ============================================================
 // TOAST & BOOT
