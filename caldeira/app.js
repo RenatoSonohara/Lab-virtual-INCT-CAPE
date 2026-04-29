@@ -1078,6 +1078,19 @@ let _batchCancelRequested = false;
 let _batchTimer = null;
 
 // ============================================================
+// ESTADO DO STEP
+// ============================================================
+let stepState = {
+  enabled: false,
+  stepTime: 10,
+  initialValue: 1,
+  finalValue: 5,
+  sampleTime: 0.1,
+  elapsedTime: 0,
+  inOriginalPhase: true
+};
+
+// ============================================================
 // INSTÂNCIA
 // ============================================================
 function createSim() {
@@ -1222,6 +1235,12 @@ function tickRealtime(stepsPerInterval) {
 
   updateKPIs(lastS);
   updateViz(lastS);
+
+  // Atualizar step durante a simulação
+  if (stepState.enabled && lastS) {
+    const elapsedTime = _stepCount * C.DELTA_T;
+    updateStepDuringSimulation(elapsedTime);
+  }
 }
 
 // ============================================================
@@ -1281,6 +1300,13 @@ function runBatch() {
     const stop = Math.min(totalSteps, i + stepsPerChunk);
 
     for (; i < stop; i++) {
+      // Atualizar step antes de cada passo
+      if (stepState.enabled) {
+        const elapsedTime = _stepCount * C.DELTA_T;
+        updateStepDuringSimulation(elapsedTime);
+      }
+
+      bSim.setSt(readParamValue(els.St, els.St_txt));
       lastS = bSim.stepOnce();
       if (closedLoop) {
         if (controllerMode === 'classic') {
@@ -1387,6 +1413,12 @@ function fullReset() {
   });
   renderPlantDynamics();
 
+  // Reinicializar estado do Step
+  stepState.enabled = false;
+  stepState.elapsedTime = 0;
+  stepState.inOriginalPhase = true;
+  updateStepUI();
+
   updateViz({ L: 0, P: 0, Lf: 0, Ls: 0, LQ: 0, u1_apos_desacoplador: 0, u2_apos_desacoplador: 0 });
 }
 
@@ -1449,6 +1481,103 @@ function updateViz(s) {
 }
 
 // ============================================================
+// FUNÇÕES DO STEP
+// ============================================================
+function applyStepConfig() {
+  // Ler valores do modal
+  const stepTime = parseFloat(document.getElementById('stepTime')?.value || '10');
+  const initialValue = parseFloat(document.getElementById('stepInitialValue')?.value || '1');
+  const finalValue = parseFloat(document.getElementById('stepFinalValue')?.value || '5');
+  const sampleTime = parseFloat(document.getElementById('stepSampleTime')?.value || '0.1');
+
+  // Arredondar stepTime para o múltiplo mais próximo de sampleTime
+  const roundedStepTime = Math.round(stepTime / sampleTime) * sampleTime;
+
+  // Atualizar estado
+  stepState.enabled = true;
+  stepState.stepTime = roundedStepTime;
+  stepState.initialValue = initialValue;
+  stepState.finalValue = finalValue;
+  stepState.sampleTime = sampleTime;
+  stepState.elapsedTime = 0;
+  stepState.inOriginalPhase = true;
+
+  // Aplicar valor inicial
+  els.St.value = initialValue;
+  els.St_txt.value = initialValue;
+
+  // Atualizar UI do step
+  updateStepUI();
+
+  // Fechar modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
+  if (modal) modal.hide();
+
+  els.status.textContent = '✓ Step configurado e ativado';
+}
+
+function disableStep() {
+  stepState.enabled = false;
+  stepState.elapsedTime = 0;
+  stepState.inOriginalPhase = true;
+
+  // Limpar estilos
+  updateStepUI();
+
+  // Fechar modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
+  if (modal) modal.hide();
+
+  els.status.textContent = '✓ Step desabilitado';
+}
+
+function updateStepUI() {
+  const stSlider = els.St;
+  const stepBtn = document.getElementById('stepBtn');
+
+  if (stepState.enabled) {
+    // Step ativado: slider cinza, botão cinza
+    stSlider.classList.remove('step-active');
+    stSlider.classList.add('step-disabled');
+    stepBtn?.classList.add('step-active');
+    stepBtn?.classList.remove('step-disabled');
+  } else {
+    // Step desativado: remover estilos
+    stSlider.classList.remove('step-disabled', 'step-active');
+    stepBtn?.classList.remove('step-active', 'step-disabled');
+    stepBtn?.classList.add('step-disabled');
+  }
+}
+
+function handleStepSliderChange() {
+  // Se o step está ativado e o usuário mexe no slider, ativar o modo azul e desabilitar step
+  if (stepState.enabled) {
+    stepState.enabled = false;
+    const stSlider = els.St;
+    const stepBtn = document.getElementById('stepBtn');
+    stSlider.classList.remove('step-disabled');
+    stSlider.classList.add('step-active');
+    stepBtn?.classList.remove('step-active');
+    stepBtn?.classList.add('step-disabled');
+    els.status.textContent = '⚠ Step interrompido (slider alterado manualmente)';
+  }
+}
+
+function updateStepDuringSimulation(elapsedTime) {
+  if (!stepState.enabled) return;
+
+  stepState.elapsedTime = elapsedTime;
+
+  if (stepState.inOriginalPhase && elapsedTime >= stepState.stepTime) {
+    // Transição para a segunda fase
+    stepState.inOriginalPhase = false;
+    els.St.value = stepState.finalValue;
+    els.St_txt.value = stepState.finalValue;
+    if (sim) sim.setSt(stepState.finalValue);
+  }
+}
+
+// ============================================================
 // EVENTOS
 // ============================================================
 els.start?.addEventListener('click', () => {
@@ -1503,6 +1632,14 @@ document.querySelectorAll('[data-dynamic-toggle]').forEach(button => {
     setPlantDynamic(key, !plantDynamics[key]);
   });
 });
+
+// Event listeners do Step
+document.getElementById('stepApplyBtn')?.addEventListener('click', applyStepConfig);
+document.getElementById('stepDisableBtn')?.addEventListener('click', disableStep);
+
+// Detectar mudanças no slider ΔV enquanto step ativo
+els.St?.addEventListener('input', handleStepSliderChange);
+els.St_txt?.addEventListener('input', handleStepSliderChange);
 
 // ============================================================
 // TOAST & BOOT
