@@ -29,6 +29,97 @@
       .viz-flow-heat  { stroke-dasharray: 8 4; animation: flowHeat  0.5s linear infinite; }
     </style>
 </head>
+<div class="modal fade" id="plantModal" tabindex="-1" aria-labelledby="plantModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="plantModalLabel">Modelo da Planta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-4 p-3 border rounded bg-light">
+          <div class="fs-5 text-center mb-3">
+            ΔL(s), ΔP(s) =
+            [ LF(s) LQ(s); PF(s) PQ(s) ] · [ ΔF(s); ΔQ(s) ]
+            + [ LV(s); PV(s) ] · ΔV(s)
+          </div>
+
+          <div class="row g-3 text-center">
+            <div class="col-md-4"><strong>LF(s)</strong> = KF / (s(τF s + 1))</div>
+            <div class="col-md-4"><strong>LQ(s)</strong> = KQ(τQz s − 1) / (s(τQp s + 1))</div>
+            <div class="col-md-4"><strong>LV(s)</strong> = KV(τVz s − 1) / (s(τVp s + 1))</div>
+            <div class="col-md-12"><strong>PF(s) = PQ(s) = PV(s)</strong> = K′i / s</div>
+          </div>
+        </div>
+
+        <h6 class="fw-bold mb-3">Constantes da planta</h6>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">KF</label>
+            <input id="plant_KF" type="number" step="any" class="form-control" value="1.34e-4">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">KQ</label>
+            <input id="plant_KQ" type="number" step="any" class="form-control" value="1.153e-11">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">KV</label>
+            <input id="plant_KV" type="number" step="any" class="form-control" value="1.515e-4">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">τF</label>
+            <input id="plant_tauF" type="number" step="any" class="form-control" value="8.666">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">τQp</label>
+            <input id="plant_tauQp" type="number" step="any" class="form-control" value="7.878">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">τVp</label>
+            <input id="plant_tauVp" type="number" step="any" class="form-control" value="1.755">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">τQz</label>
+            <input id="plant_tauQz" type="number" step="any" class="form-control" value="-440.7632">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">τVz</label>
+            <input id="plant_tauVz" type="number" step="any" class="form-control" value="259.538">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">K′F</label>
+            <input id="plant_KpF" type="number" step="any" class="form-control" value="-311">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">K′Q</label>
+            <input id="plant_KpQ" type="number" step="any" class="form-control" value="6.765e-4">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">K′V</label>
+            <input id="plant_KpV" type="number" step="any" class="form-control" value="-1338">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="resetPlantConstsBtn" type="button" class="btn btn-outline-secondary">Restaurar padrão</button>
+        <button id="applyPlantConstsBtn" type="button" class="btn btn-primary" data-bs-dismiss="modal">Aplicar</button>
+      </div>
+    </div>
+  </div>
+</div>
 <body>
 
 <!-- NAVBAR -->
@@ -332,7 +423,12 @@
                     <path d="M 638.88 70 L 631.88 73.5 L 633.63 70 L 631.88 66.5 Z" fill="#1e40af" stroke="#1e40af"/>
                     <path d="M 566.25 101.75 L 566.3 100 L 633.63 100" fill="none" stroke="#dc2626" stroke-width="1.5"/>
                     <path d="M 638.88 100 L 631.88 103.5 L 633.63 100 L 631.88 96.5 Z" fill="#dc2626" stroke="#dc2626"/>
-                    <rect x="483.75" y="50" width="82.5" height="69" rx="4" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+                    <rect id="plantBlockBtn"
+                          x="483.75" y="50" width="82.5" height="69" rx="4"
+                          fill="#dbeafe" stroke="#2563eb" stroke-width="2"
+                          style="cursor:pointer;"
+                          data-bs-toggle="modal"
+                          data-bs-target="#plantModal"/>
                     <text x="525" y="91" fill="#1e3a8a" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">Planta</text>
                     <path d="M 218 319 L 218 322 L 319.13 322" fill="none" stroke="#555" stroke-width="1.5"/>
                     <path d="M 324.38 322 L 317.38 325.5 L 319.13 322 L 317.38 318.5 Z" fill="#555" stroke="#555"/>

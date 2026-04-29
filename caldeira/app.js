@@ -68,6 +68,9 @@ class CaldeiraJS {
     this.KiFF = gainsFeedForward?.ki ?? 0;
     this.KdFF = gainsFeedForward?.kd ?? 0;
 
+    // constantes valor dafalut:
+    this.plantConsts = { ...plantConsts };
+
     // Dinâmica de pressão: dP/dt = -311*W -1338*St + 0.0006765*Q
     this.desacoplador = {
       gPw: -311,
@@ -231,12 +234,13 @@ class CaldeiraJS {
     const W = this.W;
     const St = this.St;
     const Q = this.Q;
+    const pc = this.plantConsts;
 
     const Std = (St - this._StPrev) / dt;
     const Qd = (Q - this._QPrev) / dt;
 
     if (this.enabledDynamics.Lf) {
-      const Lf_dd = (-1 / 8.666) * this.Lfd + (0.000134 / 8.666) * W;
+      const Lf_dd = (-1 / pc.tauF) * this.Lfd + (pc.KF / pc.tauF) * W;
       this.Lfd += Lf_dd * dt;
       this.Lf += this.Lfd * dt;
     } else {
@@ -245,7 +249,9 @@ class CaldeiraJS {
     }
 
     if (this.enabledDynamics.Ls) {
-      const Ls_dd = (-1 / 1.755) * this.Lsd + (0.03932 / 1.755) * Std - (0.0001515 / 1.755) * St;
+      const Ls_dd = (-1 / pc.tauVp) * this.Lsd
+        + ((pc.KV * pc.tauVz) / pc.tauVp) * Std
+       - (pc.KV / pc.tauVp) * St;
       this.Lsd += Ls_dd * dt;
       this.Ls += this.Lsd * dt;
     } else {
@@ -254,21 +260,21 @@ class CaldeiraJS {
     }
 
     if (this.enabledDynamics.LQ) {
-      const LQ_dd = (-1 / 7.878) * this.LQd - (5e-9 / 7.878) * Qd - (1.15e-11 / 7.878) * Q;
-      this.LQd += LQ_dd * dt;
-      this.LQ += this.LQd * dt;
+      const LQ_dd = (-1 / pc.tauQp) * this.LQd
+      + ((pc.KQ * pc.tauQz) / pc.tauQp) * Qd
+      - (pc.KQ / pc.tauQp) * Q;
     } else {
       this.LQ = 0;
       this.LQd = 0;
     }
 
-    if (this.enabledDynamics.Pf) this.Pf += (-311 * W) * dt;
+    if (this.enabledDynamics.Pf) this.Pf += (pc.KpF * W) * dt;
     else this.Pf = 0;
 
-    if (this.enabledDynamics.Ps) this.Ps += (-1338 * St) * dt;
+    if (this.enabledDynamics.Ps) this.Ps += (pc.KpV * St) * dt;
     else this.Ps = 0;
 
-    if (this.enabledDynamics.PQ) this.PQ += (0.0006765 * Q) * dt;
+    if (this.enabledDynamics.PQ) this.PQ += (pc.KpQ * Q) * dt;
     else this.PQ = 0;
 
     const L = this.Lf + this.Ls + this.LQ;
@@ -338,8 +344,55 @@ function fmt(x, d=4) { return Number(x).toFixed(d); }
 
 // ============================================================
 // CONSTANTES — passo fixo 0.1 s, gráfico a cada 1 s
+// Constantes default da planta
 // ============================================================
 const C = { DELTA_T: 0.1 };
+const PLANT_CONST_DEFAULTS = {
+  KF: 1.34e-4,
+  KQ: 1.153e-11,
+  KV: 1.515e-4,
+  tauF: 8.666,
+  tauQp: 7.878,
+  tauVp: 1.755,
+  tauQz: -440.7632,
+  tauVz: 259.538,
+  KpF: -311,
+  KpQ: 6.765e-4,
+  KpV: -1338,
+};
+
+let plantConsts = { ...PLANT_CONST_DEFAULTS };
+
+function readPlantConstsFromModal() {
+  plantConsts = {
+    KF: Number(q('#plant_KF')?.value),
+    KQ: Number(q('#plant_KQ')?.value),
+    KV: Number(q('#plant_KV')?.value),
+    tauF: Number(q('#plant_tauF')?.value),
+    tauQp: Number(q('#plant_tauQp')?.value),
+    tauVp: Number(q('#plant_tauVp')?.value),
+    tauQz: Number(q('#plant_tauQz')?.value),
+    tauVz: Number(q('#plant_tauVz')?.value),
+    KpF: Number(q('#plant_KpF')?.value),
+    KpQ: Number(q('#plant_KpQ')?.value),
+    KpV: Number(q('#plant_KpV')?.value),
+  };
+
+  if (sim) {
+    sim.plantConsts = { ...plantConsts };
+    sim.desacoplador.gPw = plantConsts.KpF;
+    sim.desacoplador.gPq = plantConsts.KpQ;
+    sim.desacoplador.gPs = plantConsts.KpV;
+  }
+}
+
+function resetPlantConstsModal() {
+  Object.entries(PLANT_CONST_DEFAULTS).forEach(([key, value]) => {
+    const el = q(`#plant_${key}`);
+    if (el) el.value = value;
+  });
+  readPlantConstsFromModal();
+}
 const STEPS_PER_POINT = 10; // 0.1 * 10 = 1 s por ponto no gráfico
 
 // ============================================================
@@ -1201,6 +1254,18 @@ els.start?.addEventListener('click', () => {
 });
 
 els.reset?.addEventListener('click', fullReset);
+
+q('#applyPlantConstsBtn')?.addEventListener('click', () => {
+  readPlantConstsFromModal();
+  if (sim) sim._resetPlantStates();
+  showToast('Constantes da planta atualizadas.');
+});
+
+q('#resetPlantConstsBtn')?.addEventListener('click', () => {
+  resetPlantConstsModal();
+  if (sim) sim._resetPlantStates();
+  showToast('Constantes padrão restauradas.');
+});
 
 els.runBatch?.addEventListener('click', () => {
   if (timer) stopRealtime();
