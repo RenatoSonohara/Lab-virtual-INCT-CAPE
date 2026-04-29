@@ -80,24 +80,20 @@ class CaldeiraJS {
     this.controlePrincipal = 0;
     this.controleSecundario = 0;
 
-    // === ESTRATÉGIA CASCATA: Controladores C1 e C2, Desacopladores D3/D4, FeedForwards ===
-    // Coeficientes dos controladores em cascata (pré-definidos, não ajustáveis)
-    this.C1_a2 = 1.0779e3;     // coef. de d²u/dt² em C1
-    this.C1_a1 = 128.87;       // coef. de du/dt em C1
-    this.C1_a0 = 0.51824;      // coef. de u em C1
+    // === ESTRATÉGIA CASCATA: Controladores C1 e C2 (PIDs clássicos), Desacopladores D3/D4, FeedForwards ===
+    // Ganhos dos controladores em cascata (pré-definidos, não ajustáveis)
+    this.Kp_c1 = 128.87;       // Proporcional de C1
+    this.Kd_c1 = 1077.9;       // Derivativo de C1
+    this.Ki_c1 = 0.51829;      // Integral de C1
     
-    this.C2_a1 = 24.9688;      // coef. de du/dt em C2
-    this.C2_a0 = 0.1040;       // coef. de u em C2
+    this.Kp_c2 = 24.9688;      // Proporcional de C2
+    this.Ki_c2 = 0.1040;       // Integral de C2
 
-    // Estados para C1 (segunda ordem)
-    this.C1_y = 0;
-    this.C1_y_dot = 0;
-    this._C1_u_prev = 0;
-    this._C1_u_prev2 = 0;
-
-    // Estados para C2 (primeira ordem)
-    this.C2_y = 0;
-    this._C2_u_prev = 0;
+    // Estados integrais para C1 e C2
+    this.acaoIntegral_c1 = 0;
+    this.acaoIntegral_c2 = 0;
+    this._lastL_c1 = 0;
+    this._lastP_c2 = 0;
 
     // Desacoplador D1 (para W): dy/dt = -0.12693*y - 9.4647e-8*du/dt - 1.092e-8*u
     this.D1_y = 0;
@@ -155,12 +151,10 @@ class CaldeiraJS {
     this.controleSecundario = 0;
 
     // Reset estados da estratégia cascata
-    this.C1_y = 0;
-    this.C1_y_dot = 0;
-    this._C1_u_prev = 0;
-    this._C1_u_prev2 = 0;
-    this.C2_y = 0;
-    this._C2_u_prev = 0;
+    this.acaoIntegral_c1 = 0;
+    this.acaoIntegral_c2 = 0;
+    this._lastL_c1 = 0;
+    this._lastP_c2 = 0;
     this.D1_y = 0;
     this._D1_u_prev = 0;
     this.FF1_y = 0;
@@ -266,53 +260,40 @@ class CaldeiraJS {
 
   /**
    * Controlador C1(s) — Nível
-   * C1(s) = (1.0779e3*s² + 128.87*s + 0.51824) / s
-   * EDO: d²y/dt² = 1.0779e3*d²u/dt² + 128.87*du/dt + 0.51824*u
-   * Implementado com estado expandido: y, dy/dt
+   * PID clássico com ganhos:
+   * Kp = 128.87, Ki = 0.51829, Kd = 1077.9
    */
   controleCascata1(L) {
     const erro = this.refL - L;
-    const dt = this.DELTA_T;
+    const dMeas = (L - this._lastL_c1) / this.DELTA_T;
+    this._lastL_c1 = L;
 
-    // Diferenças do erro (aproximação: entrada do controlador)
-    const erro_d = (erro - this._C1_u_prev) / dt;
-    const erro_dd = (erro_d - (this._C1_u_prev2 / dt)) / dt;
-    this._C1_u_prev2 = (erro - this._C1_u_prev);
+    this.acaoIntegral_c1 += this.Ki_c1 * erro * this.DELTA_T;
+    const u = this.Kp_c1 * erro + this.acaoIntegral_c1 - this.Kd_c1 * dMeas;
 
-    // EDO integrada com Euler backward: dy/dt = y_dot; d(y_dot)/dt = ...
-    const y_dd = this.C1_a2 * erro_dd + this.C1_a1 * erro_d + this.C1_a0 * erro;
-    this.C1_y_dot += y_dd * dt;
-    this.C1_y += this.C1_y_dot * dt;
-
-    this._C1_u_prev = erro;
-    this.C1_output = this.C1_y;
-    this.sinalControle1 = this.C1_output;
-    this.controlePrincipal = this.C1_output;
+    this.C1_output = u;
+    this.sinalControle1 = u;
+    this.controlePrincipal = u;
 
     return erro;
   }
 
   /**
    * Controlador C2(s) — Pressão
-   * C2(s) = (24.9688*s + 0.1040) / s
-   * EDO: dy/dt = 24.9688*du/dt + 0.1040*u
-   * Integrada: y += (24.9688*du/dt + 0.1040*u) * dt
+   * PID clássico com ganhos:
+   * Kp = 24.9688, Ki = 0.1040, Kd = 0 (sem derivativo)
    */
   controleCascata2(P) {
     const erro = this.refP - P;
-    const dt = this.DELTA_T;
+    const dMeas = (P - this._lastP_c2) / this.DELTA_T;
+    this._lastP_c2 = P;
 
-    // Diferença do erro
-    const erro_d = (erro - this._C2_u_prev) / dt;
+    this.acaoIntegral_c2 += this.Ki_c2 * erro * this.DELTA_T;
+    const u = this.Kp_c2 * erro + this.acaoIntegral_c2;
 
-    // Integração direta da EDO
-    const dy = (this.C2_a1 * erro_d + this.C2_a0 * erro) * dt;
-    this.C2_y += dy;
-
-    this._C2_u_prev = erro;
-    this.C2_output = this.C2_y;
-    this.sinalControle2 = this.C2_output;
-    this.controleSecundario = this.C2_output;
+    this.C2_output = u;
+    this.sinalControle2 = u;
+    this.controleSecundario = u;
 
     return erro;
   }
@@ -384,31 +365,41 @@ class CaldeiraJS {
 
   /**
    * Aplica estratégia em cascata:
-   * W = C1_output + FF1_output + D1_output
-   * St = C2_output + FF2_output + D2_output
+   * ΔF (W) = C1 + FF1 + D1
+   * ΔQ (Q) = C2 + FF2 + D2
+   * ΔSt permanece como entrada de perturbação externa (lida por FF1 e FF2)
    */
   aplicarControleCascata() {
-    // Calcular feedforward 1 com St como entrada
-    this.aplicarFeedForward1(this.St);
+    // Ordem correta de conexões:
+    // - FF1 lê ΔSt e soma com C1 → ΔF
+    // - FF2 lê ΔSt e soma com C2 → ΔQ
+    // - D1 recebe (C2 + FF2) e sua saída soma em (C1 + FF1) → ΔF
+    // - D2 recebe (FF1 + C1) e sua saída soma em (C2 + FF2) → ΔQ
 
-    // Calcular desacoplador 1 com sinal anterior
-    this.aplicarDesacopladorD1(this.sinalControle1);
+    // Calcular feedforwards (ambos leem ΔSt como perturbação)
+    this.FF1_output = this.aplicarFeedForward1(this.St);
+    this.FF2_output = this.aplicarFeedForward2(this.St);
 
-    // Calcular feedforward 2 e desacoplador 2 com sinal anterior
-    this.aplicarFeedForward2(this.sinalControle2);
-    const d2Out = this.aplicarDesacopladorD2(this.sinalControle2);
+    // Desacoplador D2: entrada = FF1 + C1 (corrigido)
+    const d2In = this.FF1_output + this.C1_output;
+    const d2Out = this.aplicarDesacopladorD2(d2In);
 
-    // Soma dos sinais para W (entrada deltaF)
-    const W_total = this.C1_output + this.FF1_output + this.D1_output;
+    // Desacoplador D1: entrada = C2 + FF2
+    const d1In = this.C2_output + this.FF2_output;
+    const d1Out = this.aplicarDesacopladorD1(d1In);
 
-    // Soma dos sinais para St (entrada deltaV)
-    const St_total = this.C2_output + this.FF2_output + d2Out;
+    // Soma dos sinais:
+    // ΔF = C1 + FF1 + D1
+    // ΔQ = C2 + FF2 + D2
+    const W_total = this.C1_output + this.FF1_output + d1Out;
+    const Q_total = this.C2_output + this.FF2_output + d2Out;
 
-    this.u1_apos_desacoplador = W_total;
-    this.u2_apos_desacoplador = St_total;
+    this.u1_apos_desacoplador = W_total;    // ΔF
+    this.u2_apos_desacoplador = Q_total;    // ΔQ
 
     this.W = W_total;
-    this.St = St_total;
+    this.Q = Q_total;
+    // this.St permanece como entrada externa de perturbação
   }
 
   resetPIDs() {
@@ -439,6 +430,12 @@ class CaldeiraJS {
       u2_apos_desacoplador: this.u2_apos_desacoplador,
       p_c1: this.u1_apos_desacoplador,
       p_c2: this.u2_apos_desacoplador,
+      C1_output: this.C1_output,
+      C2_output: this.C2_output,
+      D1_output: this.D1_output,
+      D2_output: this.D2_output,
+      FF1_output: this.FF1_output,
+      FF2_output: this.FF2_output,
       erroL: this.refL - L,
       erroP: this.refP - P,
     };
@@ -680,7 +677,7 @@ const CONTROL_MODES = {
     label: 'Controle clássico',
     button: 'Estratégia: Controle clássico',
     panel: 'strategyClassicPanel',
-    chartLabels: ['PID de nível', 'PID de pressão', 'ΔF aplicada', 'ΔQ aplicada'],
+    chartLabels: ['PID de nível', 'PID de pressão', 'ΔF aplicada', 'ΔQ aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
     summaryBadge: 'Controle clássico',
     summaryTitle: 'PID de nível e PID de pressão',
     summaryText: 'A malha clássica usa dois PIDs e o desacoplador entre W e Q.',
@@ -695,7 +692,7 @@ const CONTROL_MODES = {
     label: 'Nível + feed forward',
     button: 'Estratégia: Nível + feed forward',
     panel: 'strategyLevelFFPanel',
-    chartLabels: ['Controlador de nível', 'Feed forward', 'ΔF aplicada', 'ΔQ aplicada'],
+    chartLabels: ['Controlador de nível', 'Feed forward', 'ΔF aplicada', 'ΔQ aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
     summaryBadge: 'Nível + feed forward',
     summaryTitle: 'PID de nível + PID feed forward',
     summaryText: 'O controlador principal fecha a malha de nível e o feed forward corrige ΔSt em ΔW.',
@@ -710,7 +707,7 @@ const CONTROL_MODES = {
     label: 'Estratégia em cascata',
     button: 'Estratégia: Cascata com desacoplamento e feed forward',
     panel: 'strategyCascataPanel',
-    chartLabels: ['C1 — Controle de nível', 'C2 — Controle de pressão', 'ΔF aplicada', 'ΔV aplicada'],
+    chartLabels: ['C1 — Controle de nível', 'C2 — Controle de pressão', 'ΔF aplicada', 'ΔV aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
     summaryBadge: 'Cascata',
     summaryTitle: 'Controladores C1 e C2 com desacopladores e feed forwards',
     summaryText: 'Estratégia com PIDs no domínio da frequência, compensadores de acoplamento e feed forwards.',
@@ -774,9 +771,7 @@ function syncTextToSlider(slider, txt) {
   const syncToSlider = () => {
     const v = Number(txt.value);
     if (!Number.isFinite(v)) return;
-    const min = Number(slider.min);
-    const max = Number(slider.max);
-    slider.value = Math.max(min, Math.min(max, v));
+    slider.value = v;  // Sem clamping — permite valores arbitrários
   };
   txt.addEventListener('input', syncToSlider);
   txt.addEventListener('change', syncToSlider);
@@ -1056,7 +1051,18 @@ function _pushAllCharts(tSec, s, refL, refP) {
   pushPoint(charts.L, tSec, [s.L, s.Lf, s.Ls, s.LQ, refL]);
   pushPoint(charts.P, tSec, [s.P/1e6, s.Pf/1e6, s.Ps/1e6, s.PQ/1e6, refP/1e6]);
   pushPoint(charts.ent, tSec, [s.W, s.St, s.Q / 1000]);
-  pushPoint(charts.ctrl, tSec, [s.controlePrincipal ?? s.sinalControle1, s.controleSecundario ?? s.sinalControle2, s.u1_apos_desacoplador, s.u2_apos_desacoplador / 1000]);
+  pushPoint(charts.ctrl, tSec, [
+    s.controlePrincipal ?? s.sinalControle1,
+    s.controleSecundario ?? s.sinalControle2,
+    s.u1_apos_desacoplador,
+    s.u2_apos_desacoplador / 1000,
+    s.C1_output,
+    s.C2_output,
+    s.D1_output,
+    s.D2_output / 1000,
+    s.FF1_output,
+    s.FF2_output / 1000
+  ]);
 }
 
 // ============================================================
