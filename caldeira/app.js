@@ -1078,25 +1078,124 @@ let _batchCancelRequested = false;
 let _batchTimer = null;
 
 // ============================================================
-// ESTADO DO STEP
+// ESTADO DO STEP (por sinal: St, refP, refL)
 // ============================================================
-let stepState = {
-  enabled: false,
-  sampleTime: 0.1,
-  elapsedTime: 0,
-  step1: {
-    time: 10,
-    initialValue: 1,
-    finalValue: 5,
-    completed: false
-  },
-  step2: {
-    time: 20,
-    finalValue: 3,
-    enabled: false,
-    completed: false
-  }
+const STEP_TARGETS = ['St', 'refP', 'refL'];
+let stepStates = {
+  St: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 1, finalValue: 5, completed: false }, step2: { enabled:false } },
+  refP: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 1, completed: false }, step2: { enabled:false } },
+  refL: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 0.01, completed: false }, step2: { enabled:false } },
 };
+
+function getStepTargetFromModal() {
+  const modal = document.getElementById('stepModal');
+  return modal?.dataset?.stepTarget || 'St';
+}
+
+// Aplica a configuração do modal para o alvo atual
+function applyStepConfig() {
+  const target = getStepTargetFromModal();
+  if (!STEP_TARGETS.includes(target)) return;
+
+  const time1 = parseFloat(document.getElementById('stepTime1')?.value || '10');
+  const initialValue = parseFloat(document.getElementById('stepInitialValue1')?.value || '1');
+  const finalValue = parseFloat(document.getElementById('stepFinalValue1')?.value || String(initialValue + 1));
+
+  // Arredondar o tempo para múltiplos de C.DELTA_T
+  const roundedTime = Math.round(time1 / C.DELTA_T) * C.DELTA_T;
+
+  stepStates[target].enabled = true;
+  stepStates[target].elapsedTime = 0;
+  stepStates[target].step1.time = roundedTime;
+  stepStates[target].step1.initialValue = initialValue;
+  stepStates[target].step1.finalValue = finalValue;
+  stepStates[target].step1.completed = false;
+
+  console.log('[Step] Apply', { target, time: roundedTime, initialValue, finalValue });
+
+  // Aplicar valor inicial na UI e na simulação
+  if (target === 'St') {
+    els.St.value = initialValue; els.St_txt.value = initialValue;
+    if (sim) sim.setSt(initialValue);
+  } else if (target === 'refP') {
+    els.refP.value = initialValue; els.refP_txt.value = initialValue;
+    if (sim) sim.setRefP(initialValue);
+  } else if (target === 'refL') {
+    els.refL.value = initialValue; els.refL_txt.value = initialValue;
+    if (sim) sim.setRefL(initialValue);
+  }
+
+  updateStepUI(target);
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
+  if (modal) modal.hide();
+  els.status.textContent = `✓ Step configurado e ativado (${target})`;
+}
+
+function disableStep() {
+  const target = getStepTargetFromModal();
+  if (!STEP_TARGETS.includes(target)) return;
+
+  stepStates[target].enabled = false;
+  stepStates[target].elapsedTime = 0;
+  stepStates[target].step1.completed = false;
+  updateStepUI(target);
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
+  if (modal) modal.hide();
+  console.log('[Step] Disable', { target });
+  els.status.textContent = `✓ Step desabilitado (${target})`;
+}
+
+function updateStepUI(target) {
+  // target may be single or undefined -> update all when undefined
+  const targets = target ? [target] : STEP_TARGETS;
+  targets.forEach(t => {
+    const sliderEl = (t === 'St') ? els.St : (t === 'refP' ? els.refP : els.refL);
+    const btnEl = document.getElementById(`stepBtn_${t}`);
+    if (!sliderEl || !btnEl) return;
+
+    // normalize classes
+    sliderEl.classList.remove('step-held', 'step-user');
+    btnEl.classList.remove('step-enabled', 'step-disabled', 'step-btn');
+    btnEl.classList.add('step-btn');
+
+    if (stepStates[t].enabled) {
+      sliderEl.classList.add('step-held');
+      btnEl.classList.add('step-enabled');
+    } else {
+      // slider normal
+      btnEl.classList.add('step-disabled');
+    }
+  });
+}
+
+function handleStepSliderChangeFor(target) {
+  if (!STEP_TARGETS.includes(target)) return;
+  if (stepStates[target].enabled) {
+    // user intervened -> cancel step for this target, mark slider as user-changed
+    stepStates[target].enabled = false;
+    const sliderEl = (target === 'St') ? els.St : (target === 'refP' ? els.refP : els.refL);
+    const btnEl = document.getElementById(`stepBtn_${target}`);
+    if (sliderEl) { sliderEl.classList.remove('step-held'); sliderEl.classList.add('step-user'); }
+    if (btnEl) { btnEl.classList.remove('step-enabled'); btnEl.classList.add('step-disabled', 'step-btn'); }
+    els.status.textContent = `⚠ Step interrompido (${target}) — slider alterado manualmente`;
+  }
+}
+
+function updateStepDuringSimulationFor(target, elapsedTime) {
+  if (!STEP_TARGETS.includes(target)) return;
+  const s = stepStates[target];
+  if (!s.enabled) return;
+  s.elapsedTime = elapsedTime;
+  if (!s.step1.completed && elapsedTime >= s.step1.time) {
+    s.step1.completed = true;
+    const final = s.step1.finalValue;
+    if (target === 'St') { els.St.value = final; els.St_txt.value = final; if (sim) sim.setSt(final); }
+    else if (target === 'refP') { els.refP.value = final; els.refP_txt.value = final; if (sim) sim.setRefP(final); }
+    else if (target === 'refL') { els.refL.value = final; els.refL_txt.value = final; if (sim) sim.setRefL(final); }
+  }
+}
 
 // ============================================================
 // INSTÂNCIA
@@ -1244,10 +1343,10 @@ function tickRealtime(stepsPerInterval) {
   updateKPIs(lastS);
   updateViz(lastS);
 
-  // Atualizar step durante a simulação
-  if (stepState.enabled && lastS) {
+  // Atualizar steps durante a simulação (todos os alvos)
+  if (lastS) {
     const elapsedTime = _stepCount * C.DELTA_T;
-    updateStepDuringSimulation(elapsedTime);
+    STEP_TARGETS.forEach(t => updateStepDuringSimulationFor(t, elapsedTime));
   }
 }
 
@@ -1308,11 +1407,27 @@ function runBatch() {
     const stop = Math.min(totalSteps, i + stepsPerChunk);
 
     for (; i < stop; i++) {
-      // Atualizar step antes de cada passo
-      if (stepState.enabled) {
-        const elapsedTime = _stepCount * C.DELTA_T;
-        updateStepDuringSimulation(elapsedTime);
-      }
+      // Atualizar steps antes de cada passo (batch)
+      const elapsedTime = _stepCount * C.DELTA_T;
+      STEP_TARGETS.forEach(t => {
+        const s = stepStates[t];
+        if (!s || !s.enabled) return;
+        s.elapsedTime = elapsedTime;
+        if (!s.step1.completed && elapsedTime >= s.step1.time) {
+          s.step1.completed = true;
+          const final = s.step1.finalValue;
+          if (t === 'St') { els.St.value = final; els.St_txt.value = final; bSim.setSt(final); }
+          else if (t === 'refP') { els.refP.value = final; els.refP_txt.value = final; bSim.setRefP(final); }
+          else if (t === 'refL') { els.refL.value = final; els.refL_txt.value = final; bSim.setRefL(final); }
+        }
+        if (s.step2.enabled && !s.step2.completed && elapsedTime >= s.step2.time) {
+          s.step2.completed = true;
+          const final = s.step2.finalValue;
+          if (t === 'St') { els.St.value = final; els.St_txt.value = final; bSim.setSt(final); }
+          else if (t === 'refP') { els.refP.value = final; els.refP_txt.value = final; bSim.setRefP(final); }
+          else if (t === 'refL') { els.refL.value = final; els.refL_txt.value = final; bSim.setRefL(final); }
+        }
+      });
 
       bSim.setSt(readParamValue(els.St, els.St_txt));
       lastS = bSim.stepOnce();
@@ -1421,11 +1536,14 @@ function fullReset() {
   });
   renderPlantDynamics();
 
-  // Reinicializar estado do Step
-  stepState.enabled = false;
-  stepState.elapsedTime = 0;
-  stepState.step1.completed = false;
-  stepState.step2.completed = false;
+  // Reinicializar estado dos Steps (por alvo)
+  STEP_TARGETS.forEach(t => {
+    if (!stepStates[t]) return;
+    stepStates[t].enabled = false;
+    stepStates[t].elapsedTime = 0;
+    if (stepStates[t].step1) stepStates[t].step1.completed = false;
+    if (stepStates[t].step2) { stepStates[t].step2.completed = false; stepStates[t].step2.enabled = false; }
+  });
   updateStepUI();
 
   updateViz({ L: 0, P: 0, Lf: 0, Ls: 0, LQ: 0, u1_apos_desacoplador: 0, u2_apos_desacoplador: 0 });
@@ -1492,124 +1610,9 @@ function updateViz(s) {
 // ============================================================
 // FUNÇÕES DO STEP
 // ============================================================
-function applyStepConfig() {
-  // Ler valores do modal
-  const stepTime1 = parseFloat(document.getElementById('stepTime1')?.value || '10');
-  const initialValue = parseFloat(document.getElementById('stepInitialValue1')?.value || '1');
-  const finalValue1 = parseFloat(document.getElementById('stepFinalValue1')?.value || '5');
-  const sampleTime = parseFloat(document.getElementById('stepSampleTime')?.value || '0.1');
+// Funções do Step: usa as implementações por alvo em `stepStates` (definidas acima)
 
-  const enable2 = document.getElementById('stepEnable2')?.checked || false;
-  const stepTime2 = parseFloat(document.getElementById('stepTime2')?.value || '20');
-  const finalValue2 = parseFloat(document.getElementById('stepFinalValue2')?.value || '3');
 
-  // Arredondar step times para o múltiplo mais próximo de sampleTime
-  const roundedStepTime1 = Math.round(stepTime1 / sampleTime) * sampleTime;
-  const roundedStepTime2 = Math.round(stepTime2 / sampleTime) * sampleTime;
-
-  // Atualizar estado
-  stepState.enabled = true;
-  stepState.sampleTime = sampleTime;
-  stepState.elapsedTime = 0;
-
-  stepState.step1.time = roundedStepTime1;
-  stepState.step1.initialValue = initialValue;
-  stepState.step1.finalValue = finalValue1;
-  stepState.step1.completed = false;
-
-  stepState.step2.time = roundedStepTime2;
-  stepState.step2.finalValue = finalValue2;
-  stepState.step2.enabled = enable2;
-  stepState.step2.completed = false;
-
-  // Aplicar valor inicial
-  els.St.value = initialValue;
-  els.St_txt.value = initialValue;
-
-  // Atualizar UI do step
-  updateStepUI();
-
-  // Fechar modal
-  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
-  if (modal) modal.hide();
-
-  const stepInfo = enable2 ? `com 2 passos` : `com 1 passo`;
-  els.status.textContent = `✓ Step configurado ${stepInfo} e ativado`;
-}
-
-function disableStep() {
-  stepState.enabled = false;
-  stepState.elapsedTime = 0;
-  stepState.step1.completed = false;
-  stepState.step2.completed = false;
-
-  // Limpar estilos
-  updateStepUI();
-
-  // Fechar modal
-  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
-  if (modal) modal.hide();
-
-  els.status.textContent = '✓ Step desabilitado';
-}
-
-function updateStepUI() {
-  const stSlider = els.St;
-  const stepBtn = document.getElementById('stepBtn');
-
-  if (stepState.enabled) {
-    // Step ativado: slider cinza, botão cinza
-    stSlider.classList.remove('step-active');
-    stSlider.classList.add('step-disabled');
-    stepBtn?.classList.add('step-active');
-    stepBtn?.classList.remove('step-disabled');
-  } else {
-    // Step desativado: remover estilos
-    stSlider.classList.remove('step-disabled', 'step-active');
-    stepBtn?.classList.remove('step-active', 'step-disabled');
-    stepBtn?.classList.add('step-disabled');
-  }
-}
-
-function handleStepSliderChange() {
-  // Se o step está ativado e o usuário mexe no slider, ativar o modo azul e desabilitar step
-  if (stepState.enabled) {
-    stepState.enabled = false;
-    const stSlider = els.St;
-    const stepBtn = document.getElementById('stepBtn');
-    stSlider.classList.remove('step-disabled');
-    stSlider.classList.add('step-active');
-    stepBtn?.classList.remove('step-active');
-    stepBtn?.classList.add('step-disabled');
-    els.status.textContent = '⚠ Step interrompido (slider alterado manualmente)';
-  }
-}
-
-function updateStepDuringSimulation(elapsedTime) {
-  if (!stepState.enabled) return;
-
-  stepState.elapsedTime = elapsedTime;
-
-  // Processar primeiro passo
-  if (!stepState.step1.completed && elapsedTime >= stepState.step1.time) {
-    stepState.step1.completed = true;
-    els.St.value = stepState.step1.finalValue;
-    els.St_txt.value = stepState.step1.finalValue;
-    if (sim) sim.setSt(stepState.step1.finalValue);
-  }
-
-  // Processar segundo passo (se habilitado)
-  if (
-    stepState.step2.enabled &&
-    !stepState.step2.completed &&
-    elapsedTime >= stepState.step2.time
-  ) {
-    stepState.step2.completed = true;
-    els.St.value = stepState.step2.finalValue;
-    els.St_txt.value = stepState.step2.finalValue;
-    if (sim) sim.setSt(stepState.step2.finalValue);
-  }
-}
 
 // ============================================================
 // EVENTOS
@@ -1671,9 +1674,38 @@ document.querySelectorAll('[data-dynamic-toggle]').forEach(button => {
 document.getElementById('stepApplyBtn')?.addEventListener('click', applyStepConfig);
 document.getElementById('stepDisableBtn')?.addEventListener('click', disableStep);
 
-// Detectar mudanças no slider ΔV enquanto step ativo
-els.St?.addEventListener('input', handleStepSliderChange);
-els.St_txt?.addEventListener('input', handleStepSliderChange);
+// Modal show: preencher valores conforme o botão que abriu o modal
+const stepModalEl = document.getElementById('stepModal');
+if (stepModalEl) {
+  stepModalEl.addEventListener('show.bs.modal', (e) => {
+    const trigger = e.relatedTarget;
+    const target = trigger?.dataset?.stepTarget || 'St';
+    stepModalEl.dataset.stepTarget = target;
+
+    // preencher campos do modal com o estado atual do target
+    const s = stepStates[target] || {};
+    document.getElementById('stepTime1').value = (s.step1 && s.step1.time) ? s.step1.time : 10;
+    const currVal = (target === 'St') ? readParamValue(els.St, els.St_txt) : (target === 'refP' ? readParamValue(els.refP, els.refP_txt) : readParamValue(els.refL, els.refL_txt));
+    document.getElementById('stepInitialValue1').value = currVal;
+    document.getElementById('stepFinalValue1').value = (s.step1 && s.step1.finalValue) ? s.step1.finalValue : (currVal + 1);
+  });
+}
+
+// Garantir que o botão que abre o modal define explicitamente o alvo (robustez)
+document.querySelectorAll('[data-step-target]')?.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const modal = document.getElementById('stepModal');
+    if (modal) modal.dataset.stepTarget = btn.dataset.stepTarget || 'St';
+  });
+});
+
+// Detectar mudanças nos sliders/inputs para St, refP e refL
+els.St?.addEventListener('input', () => handleStepSliderChangeFor('St'));
+els.St_txt?.addEventListener('input', () => handleStepSliderChangeFor('St'));
+els.refP?.addEventListener('input', () => handleStepSliderChangeFor('refP'));
+els.refP_txt?.addEventListener('input', () => handleStepSliderChangeFor('refP'));
+els.refL?.addEventListener('input', () => handleStepSliderChangeFor('refL'));
+els.refL_txt?.addEventListener('input', () => handleStepSliderChangeFor('refL'));
 
 // Enable/disable second step inputs based on checkbox
 document.getElementById('stepEnable2')?.addEventListener('change', (e) => {

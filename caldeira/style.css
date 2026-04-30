@@ -303,39 +303,31 @@ body, html {
 .toast.hidden { display: none; }
 
 /* ====== STEP CONTROL ====== */
-#St.step-disabled,
-#refP.step-disabled,
-#refL.step-disabled {
-  opacity: 0.5;
-  background: #e9ecef;
-  cursor: not-allowed;
-}
-
-#St.step-active,
-#refP.step-active,
-#refL.step-active {
+/* slider states: when a step controls the signal give a subtle disabled visual but keep it interactive */
+.slider.step-held {
   opacity: 0.6;
-  background: #d4d8dd;
+  filter: grayscale(10%);
+}
+.slider.step-user {
+  /* user modified while step previously active */
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12) inset;
 }
 
-#stepBtn {
-  transition: all 0.2s ease;
+/* step button states - per-target buttons use ids like #stepBtn_St */
+.step-btn {
+  transition: all 0.18s ease;
 }
-
-#stepBtn.step-active {
-  opacity: 0.5;
-  color: #6c757d;
-  background-color: #e9ecef !important;
-  border-color: #adb5bd !important;
-  cursor: not-allowed;
-}
-
-#stepBtn.step-disabled {
-  color: #0d6efd;
-  background-color: transparent !important;
+.step-btn.step-enabled {
+  /* azul para indicar que está ativo e interagível */
+  color: #fff !important;
+  background-color: #0d6efd !important;
   border-color: #0d6efd !important;
 }
-
-.step-control-wrapper {
-  position: relative;
+.step-btn.step-disabled {
+  /* preto / neutro quando não controlado por step */
+  color: #fff !important;
+  background-color: #0b1220 !important;
+  border-color: #0b1220 !important;
 }
+
+.step-control-wrapper { position: relative; }
