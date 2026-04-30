@@ -1082,9 +1082,9 @@ let _batchTimer = null;
 // ============================================================
 const STEP_TARGETS = ['St', 'refP', 'refL'];
 let stepStates = {
-  St: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 1, finalValue: 5, completed: false }, step2: { enabled:false } },
-  refP: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 1, completed: false }, step2: { enabled:false } },
-  refL: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 0.01, completed: false }, step2: { enabled:false } },
+  St: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 1, finalValue: 5, completed: false }, step2: { enabled: false, time: 20, finalValue: 3, completed: false } },
+  refP: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 1, completed: false }, step2: { enabled: false, time: 20, finalValue: 3, completed: false } },
+  refL: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 0.01, completed: false }, step2: { enabled: false, time: 20, finalValue: 0.02, completed: false } },
 };
 
 function getStepTargetFromModal() {
@@ -1100,9 +1100,13 @@ function applyStepConfig() {
   const time1 = parseFloat(document.getElementById('stepTime1')?.value || '10');
   const initialValue = parseFloat(document.getElementById('stepInitialValue1')?.value || '1');
   const finalValue = parseFloat(document.getElementById('stepFinalValue1')?.value || String(initialValue + 1));
+  const enable2 = document.getElementById('stepEnable2')?.checked || false;
+  const time2 = parseFloat(document.getElementById('stepTime2')?.value || '20');
+  const finalValue2 = parseFloat(document.getElementById('stepFinalValue2')?.value || String(initialValue + 2));
 
   // Arredondar o tempo para múltiplos de C.DELTA_T
   const roundedTime = Math.round(time1 / C.DELTA_T) * C.DELTA_T;
+  const roundedTime2 = Math.round(time2 / C.DELTA_T) * C.DELTA_T;
 
   stepStates[target].enabled = true;
   stepStates[target].elapsedTime = 0;
@@ -1110,6 +1114,10 @@ function applyStepConfig() {
   stepStates[target].step1.initialValue = initialValue;
   stepStates[target].step1.finalValue = finalValue;
   stepStates[target].step1.completed = false;
+  stepStates[target].step2.enabled = enable2;
+  stepStates[target].step2.time = roundedTime2;
+  stepStates[target].step2.finalValue = finalValue2;
+  stepStates[target].step2.completed = false;
 
   console.log('[Step] Apply', { target, time: roundedTime, initialValue, finalValue });
 
@@ -1191,6 +1199,13 @@ function updateStepDuringSimulationFor(target, elapsedTime) {
   if (!s.step1.completed && elapsedTime >= s.step1.time) {
     s.step1.completed = true;
     const final = s.step1.finalValue;
+    if (target === 'St') { els.St.value = final; els.St_txt.value = final; if (sim) sim.setSt(final); }
+    else if (target === 'refP') { els.refP.value = final; els.refP_txt.value = final; if (sim) sim.setRefP(final); }
+    else if (target === 'refL') { els.refL.value = final; els.refL_txt.value = final; if (sim) sim.setRefL(final); }
+  }
+  if (s.step2?.enabled && !s.step2.completed && elapsedTime >= s.step2.time) {
+    s.step2.completed = true;
+    const final = s.step2.finalValue;
     if (target === 'St') { els.St.value = final; els.St_txt.value = final; if (sim) sim.setSt(final); }
     else if (target === 'refP') { els.refP.value = final; els.refP_txt.value = final; if (sim) sim.setRefP(final); }
     else if (target === 'refL') { els.refL.value = final; els.refL_txt.value = final; if (sim) sim.setRefL(final); }
@@ -1688,6 +1703,15 @@ if (stepModalEl) {
     const currVal = (target === 'St') ? readParamValue(els.St, els.St_txt) : (target === 'refP' ? readParamValue(els.refP, els.refP_txt) : readParamValue(els.refL, els.refL_txt));
     document.getElementById('stepInitialValue1').value = currVal;
     document.getElementById('stepFinalValue1').value = (s.step1 && s.step1.finalValue) ? s.step1.finalValue : (currVal + 1);
+    const stepEnable2El = document.getElementById('stepEnable2');
+    const stepTime2El = document.getElementById('stepTime2');
+    const stepFinalValue2El = document.getElementById('stepFinalValue2');
+    const step2Enabled = Boolean(s.step2?.enabled);
+    if (stepEnable2El) stepEnable2El.checked = step2Enabled;
+    if (stepTime2El) stepTime2El.value = (s.step2 && s.step2.time) ? s.step2.time : 20;
+    if (stepFinalValue2El) stepFinalValue2El.value = (s.step2 && s.step2.finalValue) ? s.step2.finalValue : (currVal + 2);
+    if (stepTime2El) stepTime2El.disabled = !step2Enabled;
+    if (stepFinalValue2El) stepFinalValue2El.disabled = !step2Enabled;
   });
 }
 
