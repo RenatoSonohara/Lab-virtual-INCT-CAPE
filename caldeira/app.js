@@ -82,6 +82,52 @@ class CaldeiraJS {
     this.u2_apos_desacoplador = Q;
     this.controlePrincipal = 0;
     this.controleSecundario = 0;
+
+    // === ESTRATÉGIA CASCATA: Controladores C1 e C2 (PIDs clássicos), Desacopladores D3/D4, FeedForwards ===
+    // Ganhos dos controladores em cascata (pré-definidos, não ajustáveis)
+    this.Kp_c1 = 128.87;       // Proporcional de C1
+    this.Kd_c1 = 1077.9;       // Derivativo de C1
+    this.Ki_c1 = 0.51829;      // Integral de C1
+    
+    this.Kp_c2 = 24.9688;      // Proporcional de C2
+    this.Ki_c2 = 0.1040;       // Integral de C2
+
+    // Estados integrais para C1 e C2
+    this.acaoIntegral_c1 = 0;
+    this.acaoIntegral_c2 = 0;
+    this._lastL_c1 = 0;
+    this._lastP_c2 = 0;
+
+    // Desacoplador D1 (para W): dy/dt = -0.12693*y - 9.4647e-8*du/dt - 1.092e-8*u
+    this.D1_y = 0;
+    this._D1_u_prev = 0;
+    this.D1_c1 = -0.12693;      // coef. de y
+    this.D1_c2 = -9.4647e-8;    // coef. de du/dt
+    this.D1_c3 = -1.092e-8;     // coef. de u
+
+    // Desacoplador D2 é um ganho (será aplicado como multiplicação simples)
+    this.D2_gain = 311 / 6.765e-4;  // ≈ 460355.66
+
+    // FeedForward 1: d²y/dt² = -0.90315*dy/dt - 0.1899*y - 48.2990*d²u/dt² - 5.3872*du/dt + 0.0219*u
+    this.FF1_y = 0;
+    this.FF1_y_dot = 0;
+    this._FF1_u_prev = 0;
+    this._FF1_u_prev2 = 0;
+    this.FF1_c1 = -0.90315;    // coef. de dy/dt
+    this.FF1_c2 = -0.1899;     // coef. de y
+    this.FF1_c3 = -48.2990;    // coef. de d²u/dt²
+    this.FF1_c4 = -5.3872;     // coef. de du/dt
+    this.FF1_c5 = 0.0219;      // coef. de u
+
+    // FeedForward 2 é um ganho
+    this.FF2_gain = 1338 / 6.765e-4;  // ≈ 1977778.37
+
+    // Sinais de controle (cascata)
+    this.C1_output = 0;
+    this.C2_output = 0;
+    this.FF1_output = 0;
+    this.FF2_output = 0;
+    this.D1_output = 0;
   }
 
   _resetPlantStates() {
@@ -106,10 +152,27 @@ class CaldeiraJS {
     this.sinalControle2 = 0;
     this.controlePrincipal = 0;
     this.controleSecundario = 0;
+
+    // Reset estados da estratégia cascata
+    this.acaoIntegral_c1 = 0;
+    this.acaoIntegral_c2 = 0;
+    this._lastL_c1 = 0;
+    this._lastP_c2 = 0;
+    this.D1_y = 0;
+    this._D1_u_prev = 0;
+    this.FF1_y = 0;
+    this.FF1_y_dot = 0;
+    this._FF1_u_prev = 0;
+    this._FF1_u_prev2 = 0;
+    this.C1_output = 0;
+    this.C2_output = 0;
+    this.FF1_output = 0;
+    this.FF2_output = 0;
+    this.D1_output = 0;
   }
 
   setControllerMode(mode) {
-    this.controllerMode = mode === 'levelff' ? 'levelff' : 'classic';
+    this.controllerMode = (mode === 'levelff' || mode === 'cascata') ? mode : 'classic';
     this._resetControlStates();
   }
 
@@ -196,6 +259,152 @@ class CaldeiraJS {
     this.W = deltaW;
   }
 
+  // === ESTRATÉGIA CASCATA: Controladores e Compensadores ===
+
+  /**
+   * Controlador C1(s) — Nível
+   * PID clássico com ganhos:
+   * Kp = 128.87, Ki = 0.51829, Kd = 1077.9
+   */
+  controleCascata1(L) {
+    const erro = this.refL - L;
+    const dMeas = (L - this._lastL_c1) / this.DELTA_T;
+    this._lastL_c1 = L;
+
+    this.acaoIntegral_c1 += this.Ki_c1 * erro * this.DELTA_T;
+    const u = this.Kp_c1 * erro + this.acaoIntegral_c1 - this.Kd_c1 * dMeas;
+
+    this.C1_output = u;
+    this.sinalControle1 = u;
+    this.controlePrincipal = u;
+
+    return erro;
+  }
+
+  /**
+   * Controlador C2(s) — Pressão
+   * PID clássico com ganhos:
+   * Kp = 24.9688, Ki = 0.1040, Kd = 0 (sem derivativo)
+   */
+  controleCascata2(P) {
+    const erro = this.refP - P;
+    const dMeas = (P - this._lastP_c2) / this.DELTA_T;
+    this._lastP_c2 = P;
+
+    this.acaoIntegral_c2 += this.Ki_c2 * erro * this.DELTA_T;
+    const u = this.Kp_c2 * erro + this.acaoIntegral_c2;
+
+    this.C2_output = u;
+    this.sinalControle2 = u;
+    this.controleSecundario = u;
+
+    return erro;
+  }
+
+  /**
+   * FeedForward 1 — Compensa dinâmica em W
+   * FF1: d²y/dt² = -0.90315*dy/dt - 0.1899*y - 48.2990*d²u/dt² - 5.3872*du/dt + 0.0219*u
+   * u é o sinal de St
+   */
+  aplicarFeedForward1(St) {
+    const dt = this.DELTA_T;
+    const u = St;
+
+    // Diferenças de u
+    const u_d = (u - this._FF1_u_prev) / dt;
+    const u_dd = (u_d - (this._FF1_u_prev2 / dt)) / dt;
+    this._FF1_u_prev2 = (u - this._FF1_u_prev);
+
+    // EDO: d²y/dt² = ...
+    const y_dd = this.FF1_c1 * this.FF1_y_dot 
+               + this.FF1_c2 * this.FF1_y 
+               + this.FF1_c3 * u_dd 
+               + this.FF1_c4 * u_d 
+               + this.FF1_c5 * u;
+
+    this.FF1_y_dot += y_dd * dt;
+    this.FF1_y += this.FF1_y_dot * dt;
+
+    this._FF1_u_prev = u;
+    this.FF1_output = this.FF1_y;
+
+    return this.FF1_output;
+  }
+
+  /**
+   * FeedForward 2 — Ganho puro
+   * FF2 = 1338 / 6.765e-4
+   * Aplicado ao sinal de entrada (pressão)
+   */
+  aplicarFeedForward2(u) {
+    this.FF2_output = this.FF2_gain * u;
+    return this.FF2_output;
+  }
+
+  /**
+   * Desacoplador D1 — Compensa acoplamento na entrada W
+   * dy/dt = -0.12693*y - 9.4647e-8*du/dt - 1.092e-8*u
+   */
+  aplicarDesacopladorD1(u) {
+    const dt = this.DELTA_T;
+    const u_d = (u - this._D1_u_prev) / dt;
+
+    // EDO integrada
+    const dy = (this.D1_c1 * this.D1_y + this.D1_c2 * u_d + this.D1_c3 * u) * dt;
+    this.D1_y += dy;
+
+    this._D1_u_prev = u;
+    this.D1_output = this.D1_y;
+
+    return this.D1_output;
+  }
+
+  /**
+   * Desacoplador D2 — Ganho puro para entrada St
+   */
+  aplicarDesacopladorD2(u) {
+    return this.D2_gain * u;
+  }
+
+  /**
+   * Aplica estratégia em cascata:
+   * ΔF (W) = C1 + FF1 + D1
+   * ΔQ (Q) = C2 + FF2 + D2
+   * ΔSt permanece como entrada de perturbação externa (lida por FF1 e FF2)
+   */
+  aplicarControleCascata() {
+    // Ordem correta de conexões:
+    // - FF1 lê ΔSt e soma com C1 → ΔF
+    // - FF2 lê ΔSt e soma com C2 → ΔQ
+    // - D1 recebe (C2 + FF2) e sua saída soma em (C1 + FF1) → ΔF
+    // - D2 recebe (FF1 + C1) e sua saída soma em (C2 + FF2) → ΔQ
+
+    // Calcular feedforwards (ambos leem ΔSt como perturbação)
+    this.FF1_output = this.aplicarFeedForward1(this.St);
+    this.FF2_output = this.aplicarFeedForward2(this.St);
+
+    // Desacoplador D2: entrada = FF1 + C1 (corrigido)
+    const d2In = this.FF1_output + this.C1_output;
+    const d2Out = this.aplicarDesacopladorD2(d2In);
+
+    // Desacoplador D1: entrada = C2 + FF2
+    const d1In = this.C2_output + this.FF2_output;
+    const d1Out = this.aplicarDesacopladorD1(d1In);
+
+    // Soma dos sinais:
+    // ΔF = C1 + FF1 + D1
+    // ΔQ = C2 + FF2 + D2
+    const W_total = this.C1_output + this.FF1_output + d1Out;
+    const Q_total = this.C2_output + this.FF2_output + d2Out;
+
+    this.u1_apos_desacoplador = W_total;    // ΔF
+    this.u2_apos_desacoplador = Q_total;    // ΔQ
+
+    this.W = W_total;
+    this.Q = Q_total;
+    // this.St permanece como entrada externa de perturbação
+  }
+
   resetPIDs() {
     this._resetControlStates();
   }
@@ -224,6 +433,12 @@ class CaldeiraJS {
       u2_apos_desacoplador: this.u2_apos_desacoplador,
       p_c1: this.u1_apos_desacoplador,
       p_c2: this.u2_apos_desacoplador,
+      C1_output: this.C1_output,
+      C2_output: this.C2_output,
+      D1_output: this.D1_output,
+      D2_output: this.D2_output,
+      FF1_output: this.FF1_output,
+      FF2_output: this.FF2_output,
       erroL: this.refL - L,
       erroP: this.refP - P,
     };
@@ -444,6 +659,7 @@ const els = {
   controllerModeBtn: q('#controllerModeBtn'),
   controllerClassicBtn: q('#controllerClassicBtn'),
   controllerLevelFFBtn: q('#controllerLevelFFBtn'),
+  controllerCascataBtn: q('#controllerCascataBtn'),
   controllerSummaryBadge: q('#controllerSummaryBadge'),
   controllerSummaryTitle: q('#controllerSummaryTitle'),
   controllerSummaryText: q('#controllerSummaryText'),
@@ -455,6 +671,7 @@ const els = {
   controllerSecondaryRoleDesc: q('#controllerSecondaryRoleDesc'),
   strategyClassicPanel: q('#strategyClassicPanel'),
   strategyLevelFFPanel: q('#strategyLevelFFPanel'),
+  strategyCascataPanel: q('#strategyCascataPanel'),
   applyIdealGains: q('#applyIdealGainsBtn'),
 
   start: q('#startBtn'),
@@ -513,7 +730,7 @@ const CONTROL_MODES = {
     label: 'Controle clássico',
     button: 'Estratégia: Controle clássico',
     panel: 'strategyClassicPanel',
-    chartLabels: ['PID de nível', 'PID de pressão', 'ΔF aplicada', 'ΔQ aplicada'],
+    chartLabels: ['PID de nível', 'PID de pressão', 'ΔF aplicada', 'ΔQ aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
     summaryBadge: 'Controle clássico',
     summaryTitle: 'PID de nível e PID de pressão',
     summaryText: 'A malha clássica usa dois PIDs e o desacoplador entre W e Q.',
@@ -528,7 +745,7 @@ const CONTROL_MODES = {
     label: 'Nível + feed forward',
     button: 'Estratégia: Nível + feed forward',
     panel: 'strategyLevelFFPanel',
-    chartLabels: ['Controlador de nível', 'Feed forward', 'ΔF aplicada', 'ΔQ aplicada'],
+    chartLabels: ['Controlador de nível', 'Feed forward', 'ΔF aplicada', 'ΔQ aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
     summaryBadge: 'Nível + feed forward',
     summaryTitle: 'PID de nível + PID feed forward',
     summaryText: 'O controlador principal fecha a malha de nível e o feed forward corrige ΔSt em ΔW.',
@@ -538,6 +755,21 @@ const CONTROL_MODES = {
     secondaryRoleKicker: 'Controlador feed forward',
     secondaryRoleTitle: 'PID via ΔV',
     secondaryRoleDesc: 'Lê ΔV e injeta correção em ΔF.',
+  },
+  cascata: {
+    label: 'Estratégia em cascata',
+    button: 'Estratégia: Cascata com desacoplamento e feed forward',
+    panel: 'strategyCascataPanel',
+    chartLabels: ['C1 — Controle de nível', 'C2 — Controle de pressão', 'ΔF aplicada', 'ΔV aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
+    summaryBadge: 'Cascata',
+    summaryTitle: 'Controladores C1 e C2 com desacopladores D1 e D2 e feed forwards FF1 e FF2',
+    summaryText: 'Estratégia com PIDs no domínio da frequência, compensadores de acoplamento e feed forwards.',
+    primaryRoleKicker: 'Controlador',
+    primaryRoleTitle: 'C1 — Controle de NÍVEL L',
+    primaryRoleDesc: 'Controlador em cascata para nível com feed forward e desacoplador.',
+    secondaryRoleKicker: 'Controlador',
+    secondaryRoleTitle: 'C2 — Controle de PRESSÃO P',
+    secondaryRoleDesc: 'Controlador em cascata para pressão com feed forward e desacoplador.',
   },
 };
 
@@ -592,9 +824,7 @@ function syncTextToSlider(slider, txt) {
   const syncToSlider = () => {
     const v = Number(txt.value);
     if (!Number.isFinite(v)) return;
-    const min = Number(slider.min);
-    const max = Number(slider.max);
-    slider.value = Math.max(min, Math.min(max, v));
+    slider.value = v;  // Sem clamping — permite valores arbitrários
   };
   txt.addEventListener('input', syncToSlider);
   txt.addEventListener('change', syncToSlider);
@@ -743,12 +973,18 @@ function setControllerMode(mode) {
   if (els.strategyLevelFFPanel) {
     els.strategyLevelFFPanel.classList.toggle('hidden', nextMode !== 'levelff');
   }
+  if (els.strategyCascataPanel) {
+    els.strategyCascataPanel.classList.toggle('hidden', nextMode !== 'cascata');
+  }
 
   if (els.controllerClassicBtn) {
     els.controllerClassicBtn.classList.toggle('active', nextMode === 'classic');
   }
   if (els.controllerLevelFFBtn) {
     els.controllerLevelFFBtn.classList.toggle('active', nextMode === 'levelff');
+  }
+  if (els.controllerCascataBtn) {
+    els.controllerCascataBtn.classList.toggle('active', nextMode === 'cascata');
   }
 
   syncControlChartLabels();
@@ -851,7 +1087,7 @@ function initCharts() {
 
   charts.L = newChart(els.chartL, 'Nível ΔL (m)', ['L total', 'Lf (por ΔF)', 'Ls (por ΔV)', 'LQ (por ΔQ)', 'Ref. Nível'], [1, 2, 3]);
   charts.P = newChart(els.chartP, 'Pressão ΔP (MPa)', ['P total', 'Pf (por ΔF)', 'Ps (por ΔV)', 'PQ (por ΔQ)', 'Ref. Pressão'], [1, 2, 3]);
-  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%)', 'ΔQ (MJ)']);
+  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%)', 'ΔQ (perturbação)']);
   charts.ctrl = newChart(els.chartControles, 'Ações de Controle', controlChartLabels());
 }
 
@@ -867,8 +1103,19 @@ function pushPoint(chart, lbl, arrs) {
 function _pushAllCharts(tSec, s, refL, refP) {
   pushPoint(charts.L, tSec, [s.L, s.Lf, s.Ls, s.LQ, refL]);
   pushPoint(charts.P, tSec, [s.P/1e6, s.Pf/1e6, s.Ps/1e6, s.PQ/1e6, refP/1e6]);
-  pushPoint(charts.ent, tSec, [s.W, s.St, s.Q / 1000]);
-  pushPoint(charts.ctrl, tSec, [s.controlePrincipal ?? s.sinalControle1, s.controleSecundario ?? s.sinalControle2, s.u1_apos_desacoplador, s.u2_apos_desacoplador / 1000]);
+  pushPoint(charts.ent, tSec, [s.W, s.St, s.Q / 1e6]);
+  pushPoint(charts.ctrl, tSec, [
+    s.controlePrincipal ?? s.sinalControle1,
+    s.controleSecundario ?? s.sinalControle2,
+    s.u1_apos_desacoplador,
+    s.u2_apos_desacoplador / 1000,
+    s.C1_output,
+    s.C2_output,
+    s.D1_output,
+    s.D2_output / 1000,
+    s.FF1_output,
+    s.FF2_output / 1000
+  ]);
 }
 
 // ============================================================
@@ -882,6 +1129,141 @@ let _stepCount = 0;
 let _batchRunning = false;
 let _batchCancelRequested = false;
 let _batchTimer = null;
+
+// ============================================================
+// ESTADO DO STEP (por sinal: St, refP, refL)
+// ============================================================
+const STEP_TARGETS = ['St', 'refP', 'refL'];
+let stepStates = {
+  St: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 1, finalValue: 5, completed: false }, step2: { enabled: false, time: 20, finalValue: 3, completed: false } },
+  refP: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 1, completed: false }, step2: { enabled: false, time: 20, finalValue: 3, completed: false } },
+  refL: { enabled: false, elapsedTime: 0, step1: { time: 10, initialValue: 0, finalValue: 0.01, completed: false }, step2: { enabled: false, time: 20, finalValue: 0.02, completed: false } },
+};
+
+function getStepTargetFromModal() {
+  const modal = document.getElementById('stepModal');
+  return modal?.dataset?.stepTarget || 'St';
+}
+
+// Aplica a configuração do modal para o alvo atual
+function applyStepConfig() {
+  const target = getStepTargetFromModal();
+  if (!STEP_TARGETS.includes(target)) return;
+
+  const time1 = parseFloat(document.getElementById('stepTime1')?.value || '10');
+  const initialValue = parseFloat(document.getElementById('stepInitialValue1')?.value || '1');
+  const finalValue = parseFloat(document.getElementById('stepFinalValue1')?.value || String(initialValue + 1));
+  const enable2 = document.getElementById('stepEnable2')?.checked || false;
+  const time2 = parseFloat(document.getElementById('stepTime2')?.value || '20');
+  const finalValue2 = parseFloat(document.getElementById('stepFinalValue2')?.value || String(initialValue + 2));
+
+  // Arredondar o tempo para múltiplos de C.DELTA_T
+  const roundedTime = Math.round(time1 / C.DELTA_T) * C.DELTA_T;
+  const roundedTime2 = Math.round(time2 / C.DELTA_T) * C.DELTA_T;
+
+  stepStates[target].enabled = true;
+  stepStates[target].elapsedTime = 0;
+  stepStates[target].step1.time = roundedTime;
+  stepStates[target].step1.initialValue = initialValue;
+  stepStates[target].step1.finalValue = finalValue;
+  stepStates[target].step1.completed = false;
+  stepStates[target].step2.enabled = enable2;
+  stepStates[target].step2.time = roundedTime2;
+  stepStates[target].step2.finalValue = finalValue2;
+  stepStates[target].step2.completed = false;
+
+  console.log('[Step] Apply', { target, time: roundedTime, initialValue, finalValue });
+
+  // Aplicar valor inicial na UI e na simulação
+  if (target === 'St') {
+    els.St.value = initialValue; els.St_txt.value = initialValue;
+    if (sim) sim.setSt(initialValue);
+  } else if (target === 'refP') {
+    els.refP.value = initialValue; els.refP_txt.value = initialValue;
+    if (sim) sim.setRefP(initialValue);
+  } else if (target === 'refL') {
+    els.refL.value = initialValue; els.refL_txt.value = initialValue;
+    if (sim) sim.setRefL(initialValue);
+  }
+
+  updateStepUI(target);
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
+  if (modal) modal.hide();
+  els.status.textContent = `✓ Step configurado e ativado (${target})`;
+}
+
+function disableStep() {
+  const target = getStepTargetFromModal();
+  if (!STEP_TARGETS.includes(target)) return;
+
+  stepStates[target].enabled = false;
+  stepStates[target].elapsedTime = 0;
+  stepStates[target].step1.completed = false;
+  updateStepUI(target);
+
+  const modal = bootstrap.Modal.getInstance(document.getElementById('stepModal'));
+  if (modal) modal.hide();
+  console.log('[Step] Disable', { target });
+  els.status.textContent = `✓ Step desabilitado (${target})`;
+}
+
+function updateStepUI(target) {
+  // target may be single or undefined -> update all when undefined
+  const targets = target ? [target] : STEP_TARGETS;
+  targets.forEach(t => {
+    const sliderEl = (t === 'St') ? els.St : (t === 'refP' ? els.refP : els.refL);
+    const btnEl = document.getElementById(`stepBtn_${t}`);
+    if (!sliderEl || !btnEl) return;
+
+    // normalize classes
+    sliderEl.classList.remove('step-held', 'step-user');
+    btnEl.classList.remove('step-enabled', 'step-disabled', 'step-btn');
+    btnEl.classList.add('step-btn');
+
+    if (stepStates[t].enabled) {
+      sliderEl.classList.add('step-held');
+      btnEl.classList.add('step-enabled');
+    } else {
+      // slider normal
+      btnEl.classList.add('step-disabled');
+    }
+  });
+}
+
+function handleStepSliderChangeFor(target) {
+  if (!STEP_TARGETS.includes(target)) return;
+  if (stepStates[target].enabled) {
+    // user intervened -> cancel step for this target, mark slider as user-changed
+    stepStates[target].enabled = false;
+    const sliderEl = (target === 'St') ? els.St : (target === 'refP' ? els.refP : els.refL);
+    const btnEl = document.getElementById(`stepBtn_${target}`);
+    if (sliderEl) { sliderEl.classList.remove('step-held'); sliderEl.classList.add('step-user'); }
+    if (btnEl) { btnEl.classList.remove('step-enabled'); btnEl.classList.add('step-disabled', 'step-btn'); }
+    els.status.textContent = `⚠ Step interrompido (${target}) — slider alterado manualmente`;
+  }
+}
+
+function updateStepDuringSimulationFor(target, elapsedTime) {
+  if (!STEP_TARGETS.includes(target)) return;
+  const s = stepStates[target];
+  if (!s.enabled) return;
+  s.elapsedTime = elapsedTime;
+  if (!s.step1.completed && elapsedTime >= s.step1.time) {
+    s.step1.completed = true;
+    const final = s.step1.finalValue;
+    if (target === 'St') { els.St.value = final; els.St_txt.value = final; if (sim) sim.setSt(final); }
+    else if (target === 'refP') { els.refP.value = final; els.refP_txt.value = final; if (sim) sim.setRefP(final); }
+    else if (target === 'refL') { els.refL.value = final; els.refL_txt.value = final; if (sim) sim.setRefL(final); }
+  }
+  if (s.step2?.enabled && !s.step2.completed && elapsedTime >= s.step2.time) {
+    s.step2.completed = true;
+    const final = s.step2.finalValue;
+    if (target === 'St') { els.St.value = final; els.St_txt.value = final; if (sim) sim.setSt(final); }
+    else if (target === 'refP') { els.refP.value = final; els.refP_txt.value = final; if (sim) sim.setRefP(final); }
+    else if (target === 'refL') { els.refL.value = final; els.refL_txt.value = final; if (sim) sim.setRefL(final); }
+  }
+}
 
 // ============================================================
 // INSTÂNCIA
@@ -994,10 +1376,14 @@ function tickRealtime(stepsPerInterval) {
         sim.controleNivel(lastS.L);
         sim.controlePressao(lastS.P);
         sim.aplicarDesacoplador();
-      } else {
+      } else if (controllerMode === 'levelff') {
         sim.controleNivelFF(lastS.L);
         sim.controleFeedForward(lastS.St);
         sim.aplicarControleNivelFF();
+      } else if (controllerMode === 'cascata') {
+        sim.controleCascata1(lastS.L);
+        sim.controleCascata2(lastS.P);
+        sim.aplicarControleCascata();
       }
     }
 
@@ -1014,7 +1400,7 @@ function tickRealtime(stepsPerInterval) {
       els.W_txt.value = lastS.u1_apos_desacoplador.toFixed(2);
       els.Q.value = (lastS.u2_apos_desacoplador / 1000).toFixed(2);
       els.Q_txt.value = (lastS.u2_apos_desacoplador / 1000).toFixed(2);
-    } else {
+    } else if (controllerMode === 'levelff' || controllerMode === 'cascata') {
       els.W.value = lastS.u1_apos_desacoplador.toFixed(2);
       els.W_txt.value = lastS.u1_apos_desacoplador.toFixed(2);
       els.Q.value = Number(els.Q.value).toFixed(2);
@@ -1024,6 +1410,12 @@ function tickRealtime(stepsPerInterval) {
 
   updateKPIs(lastS);
   updateViz(lastS);
+
+  // Atualizar steps durante a simulação (todos os alvos)
+  if (lastS) {
+    const elapsedTime = _stepCount * C.DELTA_T;
+    STEP_TARGETS.forEach(t => updateStepDuringSimulationFor(t, elapsedTime));
+  }
 }
 
 // ============================================================
@@ -1083,16 +1475,43 @@ function runBatch() {
     const stop = Math.min(totalSteps, i + stepsPerChunk);
 
     for (; i < stop; i++) {
+      // Atualizar steps antes de cada passo (batch)
+      const elapsedTime = _stepCount * C.DELTA_T;
+      STEP_TARGETS.forEach(t => {
+        const s = stepStates[t];
+        if (!s || !s.enabled) return;
+        s.elapsedTime = elapsedTime;
+        if (!s.step1.completed && elapsedTime >= s.step1.time) {
+          s.step1.completed = true;
+          const final = s.step1.finalValue;
+          if (t === 'St') { els.St.value = final; els.St_txt.value = final; bSim.setSt(final); }
+          else if (t === 'refP') { els.refP.value = final; els.refP_txt.value = final; bSim.setRefP(final); }
+          else if (t === 'refL') { els.refL.value = final; els.refL_txt.value = final; bSim.setRefL(final); }
+        }
+        if (s.step2.enabled && !s.step2.completed && elapsedTime >= s.step2.time) {
+          s.step2.completed = true;
+          const final = s.step2.finalValue;
+          if (t === 'St') { els.St.value = final; els.St_txt.value = final; bSim.setSt(final); }
+          else if (t === 'refP') { els.refP.value = final; els.refP_txt.value = final; bSim.setRefP(final); }
+          else if (t === 'refL') { els.refL.value = final; els.refL_txt.value = final; bSim.setRefL(final); }
+        }
+      });
+
+      bSim.setSt(readParamValue(els.St, els.St_txt));
       lastS = bSim.stepOnce();
       if (closedLoop) {
         if (controllerMode === 'classic') {
           bSim.controleNivel(lastS.L);
           bSim.controlePressao(lastS.P);
           bSim.aplicarDesacoplador();
-        } else {
+        } else if (controllerMode === 'levelff') {
           bSim.controleNivelFF(lastS.L);
           bSim.controleFeedForward(lastS.St);
           bSim.aplicarControleNivelFF();
+        } else if (controllerMode === 'cascata') {
+          bSim.controleCascata1(lastS.L);
+          bSim.controleCascata2(lastS.P);
+          bSim.aplicarControleCascata();
         }
       }
       _stepCount++;
@@ -1185,6 +1604,16 @@ function fullReset() {
   });
   renderPlantDynamics();
 
+  // Reinicializar estado dos Steps (por alvo)
+  STEP_TARGETS.forEach(t => {
+    if (!stepStates[t]) return;
+    stepStates[t].enabled = false;
+    stepStates[t].elapsedTime = 0;
+    if (stepStates[t].step1) stepStates[t].step1.completed = false;
+    if (stepStates[t].step2) { stepStates[t].step2.completed = false; stepStates[t].step2.enabled = false; }
+  });
+  updateStepUI();
+
   updateViz({ L: 0, P: 0, Lf: 0, Ls: 0, LQ: 0, u1_apos_desacoplador: 0, u2_apos_desacoplador: 0 });
 }
 
@@ -1247,6 +1676,13 @@ function updateViz(s) {
 }
 
 // ============================================================
+// FUNÇÕES DO STEP
+// ============================================================
+// Funções do Step: usa as implementações por alvo em `stepStates` (definidas acima)
+
+
+
+// ============================================================
 // EVENTOS
 // ============================================================
 els.start?.addEventListener('click', () => {
@@ -1283,6 +1719,7 @@ els.applyIdealGains?.addEventListener('click', applyIdealGains);
 
 els.controllerClassicBtn?.addEventListener('click', () => setControllerMode('classic'));
 els.controllerLevelFFBtn?.addEventListener('click', () => setControllerMode('levelff'));
+els.controllerCascataBtn?.addEventListener('click', () => setControllerMode('cascata'));
 
 els.loopModeToggle?.addEventListener('change', () => {
   setLoopMode(els.loopModeToggle.checked);
@@ -1311,6 +1748,60 @@ document.querySelectorAll('[data-dynamic-toggle]').forEach(button => {
     if (!key) return;
     setPlantDynamic(key, !plantDynamics[key]);
   });
+});
+
+// Event listeners do Step
+document.getElementById('stepApplyBtn')?.addEventListener('click', applyStepConfig);
+document.getElementById('stepDisableBtn')?.addEventListener('click', disableStep);
+
+// Modal show: preencher valores conforme o botão que abriu o modal
+const stepModalEl = document.getElementById('stepModal');
+if (stepModalEl) {
+  stepModalEl.addEventListener('show.bs.modal', (e) => {
+    const trigger = e.relatedTarget;
+    const target = trigger?.dataset?.stepTarget || 'St';
+    stepModalEl.dataset.stepTarget = target;
+
+    // preencher campos do modal com o estado atual do target
+    const s = stepStates[target] || {};
+    document.getElementById('stepTime1').value = (s.step1 && s.step1.time) ? s.step1.time : 10;
+    const currVal = (target === 'St') ? readParamValue(els.St, els.St_txt) : (target === 'refP' ? readParamValue(els.refP, els.refP_txt) : readParamValue(els.refL, els.refL_txt));
+    document.getElementById('stepInitialValue1').value = currVal;
+    document.getElementById('stepFinalValue1').value = (s.step1 && s.step1.finalValue) ? s.step1.finalValue : (currVal + 1);
+    const stepEnable2El = document.getElementById('stepEnable2');
+    const stepTime2El = document.getElementById('stepTime2');
+    const stepFinalValue2El = document.getElementById('stepFinalValue2');
+    const step2Enabled = Boolean(s.step2?.enabled);
+    if (stepEnable2El) stepEnable2El.checked = step2Enabled;
+    if (stepTime2El) stepTime2El.value = (s.step2 && s.step2.time) ? s.step2.time : 20;
+    if (stepFinalValue2El) stepFinalValue2El.value = (s.step2 && s.step2.finalValue) ? s.step2.finalValue : (currVal + 2);
+    if (stepTime2El) stepTime2El.disabled = !step2Enabled;
+    if (stepFinalValue2El) stepFinalValue2El.disabled = !step2Enabled;
+  });
+}
+
+// Garantir que o botão que abre o modal define explicitamente o alvo (robustez)
+document.querySelectorAll('[data-step-target]')?.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const modal = document.getElementById('stepModal');
+    if (modal) modal.dataset.stepTarget = btn.dataset.stepTarget || 'St';
+  });
+});
+
+// Detectar mudanças nos sliders/inputs para St, refP e refL
+els.St?.addEventListener('input', () => handleStepSliderChangeFor('St'));
+els.St_txt?.addEventListener('input', () => handleStepSliderChangeFor('St'));
+els.refP?.addEventListener('input', () => handleStepSliderChangeFor('refP'));
+els.refP_txt?.addEventListener('input', () => handleStepSliderChangeFor('refP'));
+els.refL?.addEventListener('input', () => handleStepSliderChangeFor('refL'));
+els.refL_txt?.addEventListener('input', () => handleStepSliderChangeFor('refL'));
+
+// Enable/disable second step inputs based on checkbox
+document.getElementById('stepEnable2')?.addEventListener('change', (e) => {
+  const stepTime2Input = document.getElementById('stepTime2');
+  const stepFinalValue2Input = document.getElementById('stepFinalValue2');
+  if (stepTime2Input) stepTime2Input.disabled = !e.target.checked;
+  if (stepFinalValue2Input) stepFinalValue2Input.disabled = !e.target.checked;
 });
 
 // ============================================================

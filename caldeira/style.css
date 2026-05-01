@@ -301,3 +301,33 @@ body, html {
   box-shadow: 0 10px 28px rgba(2,8,23,.06); z-index: 1056; font-weight: 700;
 }
 .toast.hidden { display: none; }
+
+/* ====== STEP CONTROL ====== */
+/* slider states: when a step controls the signal give a subtle disabled visual but keep it interactive */
+.slider.step-held {
+  opacity: 0.6;
+  filter: grayscale(10%);
+}
+.slider.step-user {
+  /* user modified while step previously active */
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12) inset;
+}
+
+/* step button states - per-target buttons use ids like #stepBtn_St */
+.step-btn {
+  transition: all 0.18s ease;
+}
+.step-btn.step-enabled {
+  /* azul para indicar que está ativo e interagível */
+  color: #fff !important;
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+.step-btn.step-disabled {
+  /* preto / neutro quando não controlado por step */
+  color: #fff !important;
+  background-color: #0b1220 !important;
+  border-color: #0b1220 !important;
+}
+
+.step-control-wrapper { position: relative; }

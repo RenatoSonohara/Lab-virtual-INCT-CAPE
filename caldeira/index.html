@@ -365,37 +365,40 @@
               <div class="mb-2">
                 <label class="form-label text-muted mb-1">ΔF — vazão mássica entrada (kg/s)</label>
                 <div class="d-flex align-items-center gap-2">
-                  <input id="W" type="range" min="0" max="100" step="0.001" value="1" class="form-range flex-grow-1">
-                  <input id="W_txt" type="number" min="0" max="100" step="0.001" value="1" class="form-control slider-input">
+                  <input id="W" type="range" min="0" max="10000" step="0.001" value="1" class="form-range flex-grow-1">
+                  <input id="W_txt" type="number" min="0" max="10000" step="0.001" value="1" class="form-control slider-input">
                 </div>
               </div>
               <div class="mb-2">
                 <label class="form-label text-muted mb-1">ΔV — abertura válvula saída vapor (%)</label>
                 <div class="d-flex align-items-center gap-2">
-                  <input id="St" type="range" min="-100" max="100" step="0.1" value="1" class="form-range flex-grow-1">
+                  <input id="St" type="range" min="-100" max="100" step="0.1" value="1" class="form-range" style="flex: 0 0 auto; width: 120px;">
                   <input id="St_txt" type="number" min="-100" max="100" step="0.1" value="1" class="form-control slider-input">
+                  <button id="stepBtn_St" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#stepModal" data-step-target="St" title="Configurar Step">Step</button>
                 </div>
               </div>
               <div class="mb-3">
                 <label class="form-label text-muted mb-1">ΔQ — energia de entrada (MJ)</label>
                 <div class="d-flex align-items-center gap-2">
-                  <input id="Q" type="range" min="0" max="500" step="1" value="1" class="form-range flex-grow-1">
-                  <input id="Q_txt" type="number" min="0" max="500" step="1" value="1" class="form-control slider-input">
+                  <input id="Q" type="range" min="0" max="100000" step="1" value="1" class="form-range flex-grow-1">
+                  <input id="Q_txt" type="number" min="0" max="100000" step="1" value="1" class="form-control slider-input">
                 </div>
               </div>
               <h3 class="h5">Referências</h3>
               <div class="mb-2">
                 <label class="form-label text-muted mb-1">Ref. Pressão (Pa)</label>
                 <div class="d-flex align-items-center gap-2">
-                  <input id="refP" type="range" min="-500" max="500" step="0.1" value="0" class="form-range flex-grow-1">
+                  <input id="refP" type="range" min="-500" max="500" step="0.1" value="0" class="form-range" style="flex: 0 0 auto; width: 120px;">
                   <input id="refP_txt" type="number" min="-500" max="500" step="0.1" value="0" class="form-control slider-input">
+                  <button id="stepBtn_refP" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#stepModal" data-step-target="refP" title="Configurar Step">Step</button>
                 </div>
               </div>
               <div class="mb-3">
                 <label class="form-label text-muted mb-1">Ref. Nível (m)</label>
                 <div class="d-flex align-items-center gap-2">
-                  <input id="refL" type="range" min="-1" max="1" step="0.001" value="0" class="form-range flex-grow-1">
+                  <input id="refL" type="range" min="-1" max="1" step="0.001" value="0" class="form-range" style="flex: 0 0 auto; width: 120px;">
                   <input id="refL_txt" type="number" min="-1" max="1" step="0.001" value="0" class="form-control slider-input">
+                  <button id="stepBtn_refL" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#stepModal" data-step-target="refL" title="Configurar Step">Step</button>
                 </div>
               </div>
             </div>
@@ -444,14 +447,14 @@
                     <path d="M 307.5 138.88 L 304 131.88 L 307.5 133.63 L 311 131.88 Z" fill="#555" stroke="#555"/>
                     <ellipse cx="307.57" cy="60" rx="3.5" ry="3.5" fill="#555"/>
                     <rect x="282.5" y="140" width="50" height="60" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
-                    <text x="308" y="175" fill="#14532d" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">D3</text>
+                    <text x="308" y="175" fill="#14532d" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">D1</text>
                     <path d="M 374.5 140 L 374.5 81.37" fill="none" stroke="#555" stroke-width="1.5"/>
                     <path d="M 374.5 76.12 L 378 83.12 L 374.5 81.37 L 371 83.12 Z" fill="#555" stroke="#555"/>
                     <path d="M 374.5 206.37 L 374.5 284 L 341 284" fill="none" stroke="#555" stroke-width="1.5"/>
                     <path d="M 374.5 201.12 L 378 208.12 L 374.5 206.37 L 371 208.12 Z" fill="#555" stroke="#555"/>
                     <ellipse cx="338" cy="284" rx="3.5" ry="3.5" fill="#555"/>
                     <rect x="349.5" y="140" width="50" height="60" rx="4" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
-                    <text x="375" y="175" fill="#14532d" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">D4</text>
+                    <text x="375" y="175" fill="#14532d" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" text-anchor="middle">D2</text>
                     <path d="M 460 230 L 440 230 L 440 294 L 262.5 294 L 262.5 120.37" fill="none" stroke="#555" stroke-width="1.5"/>
                     <path d="M 262.5 115.12 L 266 122.12 L 262.5 120.37 L 259 122.12 Z" fill="#555" stroke="#555"/>
                     <path d="M 529.5 230 L 557 230" fill="none" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="6,3"/>
@@ -518,7 +521,7 @@
               </div>
               <div class="d-flex flex-wrap gap-3 mt-3 justify-content-center" style="font-size:0.82rem;">
                 <span><span style="display:inline-block;width:14px;height:14px;background:#fef9c3;border:2px solid #ca8a04;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>C1, C2 — Controladores PID</span>
-                <span><span style="display:inline-block;width:14px;height:14px;background:#f0fdf4;border:2px solid #16a34a;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>D3, D4 — Desacopladores</span>
+                <span><span style="display:inline-block;width:14px;height:14px;background:#f0fdf4;border:2px solid #16a34a;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>D1, D2 — Desacopladores</span>
                 <span><span style="display:inline-block;width:14px;height:14px;background:#fdf4ff;border:2px solid #a21caf;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>CFF1, CFF2 — Feed Forward</span>
                 <span><span style="display:inline-block;width:14px;height:14px;background:#dbeafe;border:2px solid #2563eb;border-radius:3px;vertical-align:middle;margin-right:4px;"></span>Planta</span>
                 <span style="color:#1e40af;">— ∆L(s)</span>
@@ -541,6 +544,7 @@
                   <ul class="dropdown-menu shadow-sm">
                     <li><button id="controllerClassicBtn" class="dropdown-item" type="button">Controle clássico</button></li>
                     <li><button id="controllerLevelFFBtn" class="dropdown-item" type="button">Nível + feed forward</button></li>
+                    <li><button id="controllerCascataBtn" class="dropdown-item" type="button">Cascata com desacoplamento</button></li>
                   </ul>
                 </div>
                 <div class="form-check form-switch m-0">
@@ -681,6 +685,69 @@
           </div>
         </div>
 
+              <!-- ESTRATÉGIA 3: CASCATA COM DESACOPLAMENTO E FEEDFORWARD -->
+              <div class="strategy-panel hidden" id="strategyCascataPanel">
+                <h3 class="h5 mb-0">Estratégia em Cascata</h3>
+                <p class="text-muted small mt-2 mb-3">Controladores C1 e C2 com compensadores de acoplamento (D1, D2) e feed forwards pré-sintonizados. Os ganhos estão fixos.</p>
+
+                <div class="alert alert-info alert-sm mb-3">
+                  <strong>ℹ️ Informação:</strong> Esta estratégia utiliza controladores em cascata com parâmetros pré-definidos otimizados.
+                  Os valores dos ganhos não são ajustáveis (sliders desabilitados) para manter a estabilidade do sistema.
+                </div>
+
+                <h3 class="h6 mt-3 mb-2" style="color:#2563eb;"><strong>C1 — Controlador de NÍVEL L</strong></h3>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted mb-1">Kp (C1): 1.0779e3 — Feed Forward + Desacoplador</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted mb-1">Ki (C1): 128.87</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label text-muted mb-1">Kd (C1): 0.51824</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <h3 class="h6 mb-2" style="color:#dc2626;"><strong>C2 — Controlador de PRESSÃO P</strong></h3>
+
+                <div class="mb-2">
+                  <label class="form-label text-muted mb-1">Kp (C2): 24.9688 — Feed Forward + Desacoplador</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label text-muted mb-1">Ki (C2): 0.1040</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="range" min="0" max="1" value="1" class="form-range flex-grow-1" disabled>
+                    <span class="slider-input text-muted">Fixo</span>
+                  </div>
+                </div>
+
+                <div class="alert alert-sm text-muted">
+                  <small>
+                    <strong>Estrutura:</strong> 
+                    ΔF = C1 + FF1 + D1 (desacoplador de nível)<br>
+                    ΔV = C2 + FF2 + D2 (desacoplador de pressão)
+                  </small>
+                </div>
+              </div>
+
   </div>
   <div class="row g-3">
     <!-- Gráfico: Nível total + componentes -->
@@ -742,6 +809,64 @@
 
 <!-- Toast -->
 <div id="toast" class="toast hidden">Em breve…</div>
+
+<!-- Modal do Step -->
+<div class="modal fade" id="stepModal" tabindex="-1" aria-labelledby="stepModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="stepModalLabel">Configuração do Step (até 2 passos)</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <!-- STEP 1 -->
+        <h5 class="mb-3">Passo 1</h5>
+        <div class="mb-3">
+          <label for="stepTime1" class="form-label">Tempo do Step 1 (s):</label>
+          <input type="number" class="form-control" id="stepTime1" value="10" min="0" step="0.1">
+        </div>
+        <div class="mb-3">
+          <label for="stepInitialValue1" class="form-label">Valor inicial:</label>
+          <input type="number" class="form-control" id="stepInitialValue1" value="1" step="0.1">
+        </div>
+        <div class="mb-3">
+          <label for="stepFinalValue1" class="form-label">Valor final do Passo 1:</label>
+          <input type="number" class="form-control" id="stepFinalValue1" value="5" step="0.1">
+        </div>
+
+        <hr class="my-4">
+
+        <!-- STEP 2 -->
+        <h5 class="mb-3">Passo 2 (opcional)</h5>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="stepEnable2">
+          <label class="form-check-label" for="stepEnable2">
+            Habilitar segundo passo
+          </label>
+        </div>
+        <div class="mb-3">
+          <label for="stepTime2" class="form-label">Tempo do Step 2 (s):</label>
+          <input type="number" class="form-control" id="stepTime2" value="20" min="0" step="0.1" disabled>
+        </div>
+        <div class="mb-3">
+          <label for="stepFinalValue2" class="form-label">Valor final do Passo 2:</label>
+          <input type="number" class="form-control" id="stepFinalValue2" value="3" step="0.1" disabled>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- Tempo de amostra segue o passo de integração (C.DELTA_T) -->
+      </div>
+      <div class="modal-footer d-flex gap-2 justify-content-between">
+        <button type="button" class="btn btn-secondary" id="stepDisableBtn">Desabilitar Step</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="stepApplyBtn">Aplicar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- FOOTER -->
 <footer class="ufsc-footer">
