@@ -709,7 +709,7 @@ const CONTROL_MODES = {
     panel: 'strategyCascataPanel',
     chartLabels: ['C1 — Controle de nível', 'C2 — Controle de pressão', 'ΔF aplicada', 'ΔV aplicada', 'C1', 'C2', 'D1', 'D2', 'FF1', 'FF2'],
     summaryBadge: 'Cascata',
-    summaryTitle: 'Controladores C1 e C2 com desacopladores e feed forwards',
+    summaryTitle: 'Controladores C1 e C2 com desacopladores D1 e D2 e feed forwards FF1 e FF2',
     summaryText: 'Estratégia com PIDs no domínio da frequência, compensadores de acoplamento e feed forwards.',
     primaryRoleKicker: 'Controlador',
     primaryRoleTitle: 'C1 — Controle de NÍVEL L',
@@ -1034,7 +1034,7 @@ function initCharts() {
 
   charts.L = newChart(els.chartL, 'Nível ΔL (m)', ['L total', 'Lf (por ΔF)', 'Ls (por ΔV)', 'LQ (por ΔQ)', 'Ref. Nível'], [1, 2, 3]);
   charts.P = newChart(els.chartP, 'Pressão ΔP (MPa)', ['P total', 'Pf (por ΔF)', 'Ps (por ΔV)', 'PQ (por ΔQ)', 'Ref. Pressão'], [1, 2, 3]);
-  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%)', 'ΔQ (MJ)']);
+  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%)', 'ΔQ (perturbação)']);
   charts.ctrl = newChart(els.chartControles, 'Ações de Controle', controlChartLabels());
 }
 
@@ -1050,7 +1050,7 @@ function pushPoint(chart, lbl, arrs) {
 function _pushAllCharts(tSec, s, refL, refP) {
   pushPoint(charts.L, tSec, [s.L, s.Lf, s.Ls, s.LQ, refL]);
   pushPoint(charts.P, tSec, [s.P/1e6, s.Pf/1e6, s.Ps/1e6, s.PQ/1e6, refP/1e6]);
-  pushPoint(charts.ent, tSec, [s.W, s.St, s.Q / 1000]);
+  pushPoint(charts.ent, tSec, [s.W, s.St, s.Q / 1e6]);
   pushPoint(charts.ctrl, tSec, [
     s.controlePrincipal ?? s.sinalControle1,
     s.controleSecundario ?? s.sinalControle2,
