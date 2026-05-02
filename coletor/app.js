@@ -310,8 +310,8 @@ function parseCSV(text) {
     if (parts.length < 3) continue;
 
     const tsec = parseTimeToSeconds(parts[0]);
-    const irr = Number(parts[1].replace(',','.'));
-    const ta  = Number(parts[2].replace(',','.'));
+    const irr = Number(parts[1].replace(/,/g,'.'));
+    const ta  = Number(parts[2].replace(/,/g,'.'));
 
     if (Number.isFinite(tsec) && Number.isFinite(irr) && Number.isFinite(ta)) {
       data.push({ tsec, irr, ta });
@@ -331,8 +331,12 @@ function interpolateProfile(table, tsec) {
 
   const a = table[i - 1];
   const b = table[i];
-  const alpha = (tsec - a.tsec) / (b.tsec - a.tsec);
+  // Protege contra pontos com mesmo timestamp (evita divisão por zero)
+  if (b.tsec === a.tsec) {
+    return { irr: a.irr, ta: a.ta };
+  }
 
+  const alpha = (tsec - a.tsec) / (b.tsec - a.tsec);
   return {
     irr: a.irr + alpha * (b.irr - a.irr),
     ta : a.ta  + alpha * (b.ta  - a.ta)
@@ -721,9 +725,12 @@ function runSweep() {
   const vazPct = [], Qsol = [], Qloss = [], Qpf = [];
   const erro = [], Irr = [], Ta = [];
 
-  const startSec = parseTimeToSeconds(els.simStart.value) || 8 * 3600;
-  const endSec   = parseTimeToSeconds(els.simEnd.value)   || 18 * 3600;
-  const stepSec  = Math.max(1, Number(els.simStep.value) || 60);
+  const parsedStart = parseTimeToSeconds(els.simStart.value);
+  const parsedEnd = parseTimeToSeconds(els.simEnd.value);
+  const startSec = Number.isFinite(parsedStart) ? parsedStart : 8 * 3600;
+  const endSec = Number.isFinite(parsedEnd) ? parsedEnd : 18 * 3600;
+  const stepVal = Number(els.simStep.value);
+  const stepSec = Math.max(1, Number.isFinite(stepVal) ? stepVal : 60);
 
   const totalSec = Math.max(stepSec, endSec - startSec);
   const stepsOuter = Math.max(1, Math.floor(totalSec / stepSec));

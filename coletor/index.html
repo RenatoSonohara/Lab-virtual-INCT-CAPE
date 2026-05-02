@@ -501,7 +501,8 @@
     }
 
     .slider-input {
-      width: 92px;
+      width: 74px;
+      max-width: 74px;
       text-align: right;
       font-weight: 700;
       padding: 2px 6px;
@@ -759,10 +760,10 @@
 
               <div class="row mb-3 align-items-center">
                 <label for="irr" class="col-sm-5 col-form-label text-muted">Irradiação solar (W/m²)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="irr" type="range" min="0" max="1400" step="10" value="800" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="irr_txt" type="number" min="0" max="1400" step="10" value="800" class="form-control form-control-sm slider-input ms-auto">
                   <span id="irr_val" class="fw-bold d-none">800</span>
                 </div>
@@ -770,10 +771,10 @@
 
               <div class="row mb-3 align-items-center">
                 <label for="ta" class="col-sm-5 col-form-label text-muted">Temperatura ambiente \(T_a\) (°C)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="ta" type="range" min="-5" max="60" step="0.5" value="25" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="ta_txt" type="number" min="-5" max="60" step="0.5" value="25" class="form-control form-control-sm slider-input ms-auto">
                   <span id="ta_val" class="fw-bold d-none">25.0</span>
                 </div>
@@ -781,10 +782,10 @@
 
               <div class="row align-items-center">
                 <label for="vaz" class="col-sm-5 col-form-label text-muted">Vazão inicial (%)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="vaz" type="range" min="10" max="100" step="1" value="50" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="vaz_txt" type="number" min="10" max="100" step="1" value="50" class="form-control form-control-sm slider-input ms-auto">
                   <span id="vaz_val" class="fw-bold d-none">50%</span>
                 </div>
@@ -810,10 +811,10 @@
 
               <div class="row mb-3 align-items-center">
                 <label for="ref" class="col-sm-5 col-form-label text-muted">Referência térmica (°C)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="ref" type="range" min="10" max="95" step="0.5" value="45" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="ref_txt" type="number" min="10" max="95" step="0.5" value="45" class="form-control form-control-sm slider-input ms-auto">
                   <span id="ref_val" class="fw-bold d-none">45.0</span>
                 </div>
@@ -821,10 +822,10 @@
 
               <div class="row mb-2 align-items-center">
                 <label for="kp" class="col-sm-5 col-form-label text-muted">Ganho proporcional \(K_p\)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="kp" type="range" min="0" max="10.0" step="0.05" value="0.50" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="kp_txt" type="number" min="0" max="10.0" step="0.05" value="0.50" class="form-control form-control-sm slider-input ms-auto">
                   <span id="kp_val" class="fw-bold d-none">0.50</span>
                 </div>
@@ -832,10 +833,10 @@
 
               <div class="row mb-2 align-items-center">
                 <label for="ki" class="col-sm-5 col-form-label text-muted">Ganho integral \(K_i\)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="ki" type="range" min="0" max="5.0" step="0.01" value="0.10" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="ki_txt" type="number" min="0" max="5.0" step="0.01" value="0.10" class="form-control form-control-sm slider-input ms-auto">
                   <span id="ki_val" class="fw-bold d-none">0.10</span>
                 </div>
@@ -843,10 +844,10 @@
 
               <div class="row mb-2 align-items-center">
                 <label for="kd" class="col-sm-5 col-form-label text-muted">Ganho derivativo \(K_d\)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="kd" type="range" min="0" max="2.0" step="0.005" value="0.125" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="kd_txt" type="number" min="0" max="2.0" step="0.005" value="0.125" class="form-control form-control-sm slider-input ms-auto">
                   <span id="kd_val" class="fw-bold d-none">0.125</span>
                 </div>
@@ -854,10 +855,10 @@
 
               <div class="row align-items-center">
                 <label for="tf" class="col-sm-5 col-form-label text-muted">Filtro derivativo \(T_f\) (s)</label>
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                   <input id="tf" type="range" min="0" max="10.0" step="0.1" value="0" class="form-range">
                 </div>
-                <div class="col-sm-2 text-end">
+                <div class="col-sm-3 text-end">
                   <input id="tf_txt" type="number" min="0" max="10.0" step="0.1" value="0" class="form-control form-control-sm slider-input ms-auto">
                   <span id="tf_val" class="fw-bold d-none">0.0</span>
                 </div>

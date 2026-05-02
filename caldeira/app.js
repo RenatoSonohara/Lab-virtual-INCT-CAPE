@@ -1087,7 +1087,7 @@ function initCharts() {
 
   charts.L = newChart(els.chartL, 'Nível ΔL (m)', ['L total', 'Lf (por ΔF)', 'Ls (por ΔV)', 'LQ (por ΔQ)', 'Ref. Nível'], [1, 2, 3]);
   charts.P = newChart(els.chartP, 'Pressão ΔP (MPa)', ['P total', 'Pf (por ΔF)', 'Ps (por ΔV)', 'PQ (por ΔQ)', 'Ref. Pressão'], [1, 2, 3]);
-  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%)', 'ΔQ (perturbação)']);
+  charts.ent = newChart(els.chartEntradas, 'Entradas', ['ΔF (kg/s)', 'ΔV (%) (perturbação)', 'ΔQ (MJ)']);
   charts.ctrl = newChart(els.chartControles, 'Ações de Controle', controlChartLabels());
 }
 
