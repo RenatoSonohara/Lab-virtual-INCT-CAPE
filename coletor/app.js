@@ -604,7 +604,23 @@ function newChart(canvas, yLabel, labels, xLabel) {
         y: { title: { display: true, text: yLabel } }
       },
       plugins: {
-        legend: { position: 'bottom' },
+        // Title (left) and subtitle (right) to keep them on the same top bar
+        title: {
+          display: true,
+          text: yLabel,
+          align: 'start'
+        },
+        subtitle: {
+          display: true,
+          text: xLabel,
+          align: 'end'
+        },
+        // Legend moved to the right and stacked vertically to free vertical chart space
+        legend: {
+          position: 'right',
+          align: 'center',
+          labels: { usePointStyle: false }
+        },
         tooltip: { mode: 'nearest', intersect: false }
       }
     }

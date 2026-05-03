@@ -224,6 +224,7 @@ const els = {
 
   chartV:        q('#chartV'),
   chartT:        q('#chartT'),
+  chartPowerTemp: q('#chartPowerTemp'),
   chartH2:       q('#chartH2'),
   chartEntradas: q('#chartEntradas'),
 
@@ -362,6 +363,34 @@ function initCharts() {
   charts.T   = newChart(els.chartT,   'Temp. (K)',     ['T_stack', 'Ref. Temperatura']);
   charts.H2  = newChart(els.chartH2,  'Vazão (mol/s)', ['ṅ_H₂']);
   charts.ent = newChart(els.chartEntradas, 'Entradas', ['I (A)', 'Q (W)', 'T_amb (°C)']);
+
+  // Gráfico combinado: Potência (W, esquerda) & Temperatura do stack (K, direita)
+  const ctx = els.chartPowerTemp.getContext('2d');
+  charts.powerTemp = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'T_stack (K)', data: [], borderColor: '#f97316', backgroundColor: '#f97316', yAxisID: 'y1', tension: 0.22, pointRadius: 0 },
+        { label: 'P_eletrolisador (W)', data: [], borderColor: '#2563eb', backgroundColor: '#2563eb', yAxisID: 'y', tension: 0.22, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'Tempo (s)' } },
+        y: { position: 'left', title: { display: true, text: 'Potência (W)' } },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Temperatura (K)' } }
+      },
+      plugins: {
+        title: { display: true, text: 'Potência consumida e temperatura da pilha' },
+        // legenda na parte inferior para ocupar menos espaço lateral
+        legend: { position: 'bottom', align: 'center' },
+        tooltip: { mode: 'nearest', intersect: false }
+      }
+    }
+  });
 }
 
 function pushPoint(chart, lbl, arrs) {
@@ -376,6 +405,12 @@ function _pushAllCharts(tSec, s, refT) {
   pushPoint(charts.T,   tSec, [s.T_stack, refT]);
   pushPoint(charts.H2,  tSec, [s.nH2]);
   pushPoint(charts.ent, tSec, [s.I, s.Q_ctrl, s.Tamb_C]);
+  // Potência elétrica total do stack (W) = Vcell * Ncells * I
+  if (charts.powerTemp) {
+    const P_elec = (s.Vcell || 0) * (s.Ncells || 0) * (s.I || 0);
+    // ordem dos datasets: [T_stack, P_eletrolisador]
+    pushPoint(charts.powerTemp, tSec, [s.T_stack, P_elec]);
+  }
 }
 
 // ============================================================
