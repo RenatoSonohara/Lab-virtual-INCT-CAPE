@@ -559,36 +559,29 @@
 </head>
 
 <body class="ufsc-body">
-  <nav class="navbar navbar-expand-lg ufsc-nav sticky-top shadow-sm border-bottom border-warning border-4" data-bs-theme="dark">
+  <nav class="navbar navbar-expand-lg ufsc-nav sticky-top shadow-sm border-bottom border-warning border-4" data-bs-theme="light">
     <div class="container-fluid main-container">
-      <a class="navbar-brand d-flex align-items-center fw-bold" href="../">
+      <a class="navbar-brand d-flex align-items-center fw-bold" href="../index.html">
         <img src="../logoufsc.png" height="40" alt="Logo UFSC" class="me-2">
-        <span class="brand-text">UFSC</span>
+        <span class="brand-text">Laboratório de Simulação</span>
       </a>
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto align-items-lg-center">
-          <li class="nav-item"><a class="nav-link ufsc-link" href="../">Home</a></li>
+          <li class="nav-item"><a class="nav-link ufsc-link" href="../index.html">Home</a></li>
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle ufsc-link active" href="#" role="button" data-bs-toggle="dropdown">Simulações</a>
             <ul class="dropdown-menu dropdown-menu-end ufsc-dropdown">
-              <li><a class="dropdown-item active" href="../coletor/">Coletor Solar (PID)</a></li>
+              <li><a class="dropdown-item active" href="./">Coletor Solar (PID)</a></li>
               <li><a class="dropdown-item" href="../caldeira/">Caldeira</a></li>
               <li><a class="dropdown-item" href="../eletrolisador/eletrolisador.html">Eletrolisador</a></li>
             </ul>
           </li>
           <li class="nav-item"><a class="nav-link ufsc-link" href="readme.html">Documentação</a></li>
           <li class="nav-item"><a class="nav-link ufsc-link" href="../sobre/">Sobre</a></li>
-          <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-            <span class="ufsc-chip" style="background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.2); color:#fff; box-shadow:none;">
-              <span>Status:</span> <b id="statusMsgTop">Pronto</b>
-            </span>
-          </li>
-          <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-            <span class="ufsc-clock d-inline-flex" id="clockNow" style="background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.2); color:#fff; box-shadow:none;">—</span>
-          </li>
+          
         </ul>
       </div>
     </div>
@@ -1183,15 +1176,7 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const a = document.getElementById("statusMsg");
-      const b = document.getElementById("statusMsgTop");
-      if (!a || !b) return;
-
-      const sync = () => { b.textContent = (a.textContent || "Pronto").trim(); };
-      sync();
-
-      const obs = new MutationObserver(sync);
-      obs.observe(a, { childList: true, subtree: true, characterData: true });
+      // status sync removed because top navbar no longer displays status
     });
   </script>
 

@@ -700,6 +700,7 @@ function updateKPIs(s, reference) {
 
 /* ======= Relógio ======= */
 function updateClock() {
+  if (!els.clockNow) return; // safe-guard: navbar may not include clock element
   if (timeMode === 'real') {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2,'0');
@@ -707,7 +708,7 @@ function updateClock() {
     const ss = String(now.getSeconds()).padStart(2,'0');
     els.clockNow.textContent = `${hh}:${mm}:${ss} (real)`;
   } else {
-    els.clockNow.textContent = `${els.simStart.value || '—'} → ${els.simEnd.value || '—'} (simulado)`;
+    els.clockNow.textContent = `${els.simStart?.value || '—'} → ${els.simEnd?.value || '—'} (simulado)`;
   }
 }
 
@@ -884,9 +885,9 @@ function startSimulation() {
 
   uiRunning(false);
 }
-els.start.addEventListener('click', startSimulation);
+if (els.start) els.start.addEventListener('click', startSimulation);
 
-els.reset.addEventListener('click', () => {
+if (els.reset) els.reset.addEventListener('click', () => {
   pauseRealtime();
   sim = null;
   realtimeState = 'stopped';
@@ -952,13 +953,13 @@ function saveConstsFromModal() {
   initCharts();
 }
 
-els.constBtn.addEventListener('click', () => {
+if (els.constBtn) els.constBtn.addEventListener('click', () => {
   loadConstsToModal();
-  constModalInstance.show();
+  if (constModalInstance) constModalInstance.show();
 });
-els.closeConst.addEventListener('click', () => constModalInstance.hide());
-els.cancelConst.addEventListener('click', () => constModalInstance.hide());
-els.applyConst.addEventListener('click', saveConstsFromModal);
+if (els.closeConst) els.closeConst.addEventListener('click', () => constModalInstance && constModalInstance.hide());
+if (els.cancelConst) els.cancelConst.addEventListener('click', () => constModalInstance && constModalInstance.hide());
+if (els.applyConst) els.applyConst.addEventListener('click', saveConstsFromModal);
 
 /* ======= Menus “Em breve...” ======= */
 document.querySelectorAll('[data-coming-soon]').forEach(el => {
@@ -969,6 +970,10 @@ document.querySelectorAll('[data-coming-soon]').forEach(el => {
 });
 
 function toast(msg) {
+  if (!els.toast) {
+    console.warn('toast element not found; message:', msg);
+    return;
+  }
   els.toast.textContent = msg;
   els.toast.classList.remove('hidden');
   setTimeout(() => els.toast.classList.add('hidden'), 1600);
@@ -976,6 +981,12 @@ function toast(msg) {
 
 /* ======= Boot ======= */
 function boot() {
+  // If essential elements are missing, skip runtime initialization to avoid errors
+  if (!els.start || !els.chartTemp) {
+    console.warn('Coletor app: essential elements missing, skipping initialization.');
+    return;
+  }
+
   updateLabels();
   updateClock();
   initCharts();
