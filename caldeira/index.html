@@ -124,20 +124,20 @@
 <body>
 
 <!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg ufsc-nav sticky-top shadow-sm border-bottom border-warning border-4" data-bs-theme="light">
+<nav class="navbar navbar-expand-lg ufsc-nav sticky-top" data-bs-theme="light">
   <div class="container-fluid main-container">
     <a class="navbar-brand d-flex align-items-center fw-bold" href="../index.html">
-      <img src="../logoufsc.png" height="40" alt="Logo UFSC" class="me-2">
+      <img src="../logoufsc.png" height="42" class="me-2" alt="Logo UFSC">
       <span class="brand-text">Laboratório de Simulação</span>
     </a>
-    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto align-items-lg-center">
         <li class="nav-item"><a class="nav-link ufsc-link" href="../index.html">Home</a></li>
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle ufsc-link active" href="#" role="button" data-bs-toggle="dropdown">Simulações</a>
+          <a class="nav-link dropdown-toggle ufsc-link active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Simulações</a>
           <ul class="dropdown-menu dropdown-menu-end ufsc-dropdown">
             <li><a class="dropdown-item" href="../coletor/">Coletor Solar (PID)</a></li>
             <li><a class="dropdown-item active" href="./">Caldeira</a></li>
@@ -148,6 +148,8 @@
         <li class="nav-item"><a class="nav-link ufsc-link" href="../sobre/">Sobre</a></li>
       </ul>
     </div>
+  </div>
+</nav>
   </div>
 </nav>
 

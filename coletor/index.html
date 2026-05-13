@@ -22,6 +22,7 @@
 
   <link rel="shortcut icon" href="../logoufsc.png" type="image/png">
 
+  <link rel="stylesheet" href="../home.css" />
   <link rel="stylesheet" href="style.css" />
 
   <style>
@@ -45,64 +46,6 @@
     body.ufsc-body{
       background: var(--ufsc-bg);
       color: var(--ufsc-ink);
-    }
-
-    .ufsc-nav{
-      background: linear-gradient(180deg, #003366 0%, #02284f 100%);
-    }
-
-    .navbar-brand .brand-text{
-      color: #fff;
-      letter-spacing: .2px;
-    }
-
-    .ufsc-link{
-      position: relative;
-      color: #fff !important;
-      font-weight: 600;
-    }
-
-    .ufsc-link::after{
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: -6px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--ufsc-yellow), #ffd84a);
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform .18s ease;
-    }
-
-    .ufsc-link:hover::after,
-    .ufsc-link:focus-visible::after,
-    .navbar .nav-link.active.ufsc-link::after{
-      transform: scaleX(1);
-    }
-
-    .ufsc-dropdown{
-      border: 1px solid rgba(15, 23, 42, .1);
-      box-shadow: 0 12px 28px rgba(2, 8, 23, .08);
-      padding: .35rem;
-      border-radius: 12px;
-      background: #fff;
-    }
-
-    .ufsc-dropdown .dropdown-item{
-      border-radius: 8px;
-      font-weight: 600;
-      color: #0b2240;
-    }
-
-    .ufsc-dropdown .dropdown-item:hover{
-      background: rgba(0, 0, 0, .04);
-    }
-
-    .ufsc-dropdown .dropdown-item.active,
-    .ufsc-dropdown .dropdown-item:active{
-      background: rgba(242, 194, 48, .25);
-      color: #0b2240;
     }
 
     .main-container{
@@ -559,20 +502,20 @@
 </head>
 
 <body class="ufsc-body">
-  <nav class="navbar navbar-expand-lg ufsc-nav sticky-top shadow-sm border-bottom border-warning border-4" data-bs-theme="light">
+  <nav class="navbar navbar-expand-lg ufsc-nav sticky-top" data-bs-theme="light">
     <div class="container-fluid main-container">
       <a class="navbar-brand d-flex align-items-center fw-bold" href="../index.html">
-        <img src="../logoufsc.png" height="40" alt="Logo UFSC" class="me-2">
+        <img src="../logoufsc.png" height="42" class="me-2" alt="Logo UFSC">
         <span class="brand-text">Laboratório de Simulação</span>
       </a>
-      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto align-items-lg-center">
           <li class="nav-item"><a class="nav-link ufsc-link" href="../index.html">Home</a></li>
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle ufsc-link active" href="#" role="button" data-bs-toggle="dropdown">Simulações</a>
+            <a class="nav-link dropdown-toggle ufsc-link active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Simulações</a>
             <ul class="dropdown-menu dropdown-menu-end ufsc-dropdown">
               <li><a class="dropdown-item active" href="./">Coletor Solar (PID)</a></li>
               <li><a class="dropdown-item" href="../caldeira/">Caldeira</a></li>
@@ -581,8 +524,6 @@
           </li>
           <li class="nav-item"><a class="nav-link ufsc-link" href="readme.html">Documentação</a></li>
           <li class="nav-item"><a class="nav-link ufsc-link" href="../sobre/">Sobre</a></li>
-          
-        </ul>
       </div>
     </div>
   </nav>
