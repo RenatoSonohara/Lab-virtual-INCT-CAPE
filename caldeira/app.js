@@ -9,6 +9,10 @@
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+if (window.Chart && window.ChartZoom) {
+  Chart.register(ChartZoom);
+}
+
 class CaldeiraJS {
   constructor(opts) {
     const {
@@ -1077,6 +1081,22 @@ function newChart(canvas, yLabel, labels, hiddenIndices = []) {
       plugins: {
         legend: { position: 'bottom' },
         tooltip: { mode: 'nearest', intersect: false },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x',
+            modifierKey: 'ctrl',
+          },
+          zoom: {
+            wheel: {
+              enabled: true,
+            },
+            pinch: {
+              enabled: true,
+            },
+            mode: 'x',
+          },
+        },
       },
     },
   });

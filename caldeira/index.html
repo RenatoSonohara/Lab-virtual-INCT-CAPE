@@ -28,6 +28,166 @@
       .viz-flow-water { stroke-dasharray: 8 4; animation: flowWater 0.6s linear infinite; }
       .viz-flow-steam { stroke-dasharray: 8 4; animation: flowSteam 0.8s linear infinite; }
       .viz-flow-heat  { stroke-dasharray: 8 4; animation: flowHeat  0.5s linear infinite; }
+
+      /* ── Estilos para a matriz didática ── */
+      .matrix-display {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 0.85rem;
+      }
+
+      .model-label {
+        font-size: 1.15rem;
+        color: #0d6efd;
+        letter-spacing: 0.02em;
+      }
+
+      .model-select {
+        display: inline-block;
+        width: 220px;
+        min-width: 180px;
+        padding: 0.48rem 0.95rem;
+        color: #0d6efd;
+        background-color: #ffffff;
+        border: 1px solid #0d6efd;
+        border-radius: 0.6rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        line-height: 1.25;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: linear-gradient(45deg, transparent 50%, #0d6efd 50%),
+                          linear-gradient(135deg, #0d6efd 50%, transparent 50%);
+        background-position: calc(100% - 1rem) calc(50% - 0.15rem), calc(100% - 0.6rem) calc(50% - 0.15rem);
+        background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
+        background-repeat: no-repeat;
+      }
+
+      .model-select:focus {
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.18);
+      }
+
+      .model-label {
+        font-size: 1.15rem;
+        color: #0d6efd;
+        letter-spacing: 0.02em;
+      }
+
+      .matrix-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.65rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.75rem;
+        background: #ffffff;
+        color: #0f172a;
+      }
+
+      .matrix-bracket {
+        font-family: 'Times New Roman', serif;
+        font-size: 1.8rem;
+        color: #1e3a8a;
+        line-height: 0.95;
+      }
+
+      .matrix-vector,
+      .matrix-matrix,
+      .matrix-single {
+        font-family: 'Times New Roman', serif;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #0f172a;
+        white-space: nowrap;
+      }
+
+      .matrix-matrix {
+        letter-spacing: 0.02em;
+      }
+
+      .matrix-operator {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #dc2626;
+      }
+
+      .matrix-tags {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .matrix-tag {
+        text-align: center;
+        padding: 0.45rem 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 0.75rem;
+        background: #f8fafc;
+        min-width: 120px;
+      }
+
+      .tag-title {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.25rem;
+      }
+
+      .tag-value {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      @media (max-width: 768px) {
+        .matrix-display { flex-direction: column; gap: 0.75rem; }
+        .matrix-inline { width: auto; padding: 0.35rem 0.5rem; }
+        .matrix-operator { margin: 0; }
+        .matrix-tag { min-width: 0; }
+      }
+
+      @media (max-width: 576px) {
+        .matrix-inline { font-size: 0.95rem; padding: 0.3rem 0.45rem; }
+        .matrix-bracket { font-size: 1.5rem; }
+        .matrix-operator { font-size: 1.35rem; }
+      }
+
+      .matrix-legend {
+        border: 1px solid #e5e7eb !important;
+        background: #f9fafb !important;
+      }
+
+      .matrix-legend small {
+        font-size: 0.75rem;
+      }
+
+      /* Responsividade da matriz */
+      @media (max-width: 768px) {
+        .matrix-equation { font-size: 1rem; }
+        .matrix-table { font-size: 0.8rem; }
+        .matrix-table td { padding: 6px 8px; min-width: 50px; }
+        .operator-symbol { font-size: 1.2rem; }
+        .matrix-label { font-size: 0.7rem; }
+        .equals { margin: 0 0.5rem; }
+      }
+
+      @media (max-width: 576px) {
+        .matrix-container { margin-bottom: 1rem !important; }
+        .matrix-equation { font-size: 0.9rem; }
+        .matrix-table td { padding: 4px 6px; font-size: 0.75rem; }
+        .operator-symbol { font-size: 1rem; }
+        .input-var { font-size: 0.9rem; }
+      }
     </style>
 </head>
 <div class="modal fade" id="plantModal" tabindex="-1" aria-labelledby="plantModalLabel" aria-hidden="true">
@@ -150,26 +310,20 @@
     </div>
   </div>
 </nav>
-  </div>
-</nav>
 
-<!-- HEADER -->
 <header class="hero py-4">
   <div class="container-fluid main-container">
-    <div class="row align-items-center g-4">
-      <div class="col-lg-8">
-        <h1 class="display-5 fw-bold">Simulador de Caldeira </h1>
-        <p class="fs-5 text-muted">
-          Modelo baseado em funções de transferência com <strong>3 entradas</strong>
-          (W, St, Q) e <strong>2 saídas</strong> (nível L e pressão P).
-        </p>
-        <a href="#sim-caldeira" class="btn btn-primary btn-lg">Ir para o Simulador</a>
-      </div>
-      <div class="col-lg-4">
-        <div class="border rounded-3 p-3 bg-white shadow-sm text-center">
-          <div class="text-muted small">Produzido por</div>
-          <div class="fs-5 fw-bold">Emanuele Philippsen</div>
-          <div class="text-muted small mt-1">Bolsista INCT CAPE — Engenharia de Controle e Automação</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="bg-white rounded-4 shadow-sm p-4 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+          <div>
+            <h1 class="h3 fw-bold mb-2">Simulador Caldeira</h1>
+          </div>
+          <nav class="app-shell-tabs d-flex flex-wrap align-items-center gap-2">
+            <a class="app-shell-tab" href="#sim-caldeira">Simulação</a>
+            <a class="app-shell-tab" href="#section-controle">Controle</a>
+            <a class="app-shell-tab" href="#section-graficos">Gráficos</a>
+          </nav>
         </div>
       </div>
     </div>
@@ -181,7 +335,7 @@
   <div class="row g-3">
 
     <!-- Reorganizado em grid: controles, indicadores, visualização, entradas, diagrama, controladores -->
-    <div class="col-12">
+    <div class="col-12" id="section-controle">
       <div class="sim-grid-container">
         <!-- Controle da simulação -->
         <div class="sim-grid-item sim-control">
@@ -209,30 +363,62 @@
           </div>
         </div>
 
-        <!-- Modelo da Planta -->
+        <!-- Planta -->
         <div class="sim-grid-item sim-indicators">
           <div class="card shadow-sm">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="mb-0">Modelo da Planta</h2>
+                <h2 class="mb-0">Planta</h2>
                 <div class="d-flex align-items-center">
-                  <label for="modelSelect" class="form-label me-2 mb-0 fw-bold small">Modelo:</label>
-                  <select id="modelSelect" class="form-select form-select-sm" style="width: auto;">
+                  <label for="modelSelect" class="form-label me-2 mb-0 model-label">Modelo:</label>
+                  <select id="modelSelect" class="form-select model-select" style="width: 220px; min-width: 180px;">
                     <option value="linear" selected>Linear</option>
                   </select>
                 </div>
               </div>
-              <div class="mb-3 p-3 border rounded bg-light text-center">
-                <div class="fs-5 mb-3">
-                  ΔL(s), ΔP(s) =
-                  [ LF(s) LQ(s); PF(s) PQ(s) ] · [ ΔF(s); ΔQ(s) ]
-                  + [ LV(s); PV(s) ] · ΔV(s)
+              <div class="mb-3 p-4 border rounded bg-light">
+                <div class="matrix-display justify-content-center align-items-center">
+                  <div class="matrix-inline">
+                    <span class="matrix-bracket">[</span>
+                    <span class="matrix-vector">ΔL(s); ΔP(s)</span>
+                    <span class="matrix-bracket">]</span>
+                  </div>
+                  <span class="matrix-operator">=</span>
+                  <div class="matrix-inline">
+                    <span class="matrix-bracket">[</span>
+                    <span class="matrix-matrix">L<sub>F</sub>(s) L<sub>Q</sub>(s); P<sub>F</sub>(s) P<sub>Q</sub>(s)</span>
+                    <span class="matrix-bracket">]</span>
+                  </div>
+                  <span class="matrix-operator">·</span>
+                  <div class="matrix-inline">
+                    <span class="matrix-bracket">[</span>
+                    <span class="matrix-vector">ΔF(s); ΔQ(s)</span>
+                    <span class="matrix-bracket">]</span>
+                  </div>
+                  <span class="matrix-operator">+</span>
+                  <div class="matrix-inline">
+                    <span class="matrix-bracket">[</span>
+                    <span class="matrix-vector">L<sub>V</sub>(s); P<sub>V</sub>(s)</span>
+                    <span class="matrix-bracket">]</span>
+                  </div>
+                  <span class="matrix-operator">·</span>
+                  <div class="matrix-inline">
+                    <span class="matrix-single">ΔV(s)</span>
+                  </div>
                 </div>
-                <div class="row g-3 text-center">
-                  <div class="col-md-4"><strong>LF(s)</strong> = KF / (s(τF s + 1))</div>
-                  <div class="col-md-4"><strong>LQ(s)</strong> = KQ(τQz s − 1) / (s(τQp s + 1))</div>
-                  <div class="col-md-4"><strong>LV(s)</strong> = KV(τVz s − 1) / (s(τVp s + 1))</div>
-                  <div class="col-md-12"><strong>PF(s) = PQ(s) = PV(s)</strong> = K′i / s</div>
+                <div class="matrix-tags mt-3">
+                  <div class="matrix-tag">
+                    <span class="tag-title">Saídas</span>
+                    <span class="tag-value">ΔL(s), ΔP(s)</span>
+                  </div>
+                  <div class="matrix-tag">
+                    <span class="tag-title">Entradas</span>
+                    <span class="tag-value">ΔF(s), ΔQ(s)</span>
+                  </div>
+                  <div class="matrix-tag">
+                    <span class="tag-title">Perturbação</span>
+                    <span class="tag-value">ΔV(s)</span>
+                  </div>
                 </div>
               </div>
               <div class="text-center">
@@ -749,13 +935,20 @@
               </div>
 
   </div>
-  <div class="row g-3">
-    <!-- Gráfico: Nível total + componentes -->
+  <section id="section-graficos" class="pt-5">
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="border-bottom pb-3 mb-4">
+          <h2 class="h4 fw-bold mb-1">Gráficos</h2>
+        </div>
+      </div>
+    </div>
+    <div class="row g-3">
+      <!-- Gráfico: Nível total + componentes -->
     <div class="col-12 col-lg-6">
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Nível L (m) — Total e Componentes</h2>
-          <p class="text-muted small mb-2">Gráfico atualizado durante a simulação — execute 'Iniciar' para ver dados.</p>
           <canvas id="chartL" height="140"></canvas>
         </div>
       </div>
@@ -766,7 +959,6 @@
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Pressão P (Pa) — Total e Componentes</h2>
-          <p class="text-muted small mb-2">Gráfico atualizado durante a simulação — execute 'Iniciar' para ver dados.</p>
           <canvas id="chartP" height="140"></canvas>
         </div>
       </div>
@@ -788,7 +980,6 @@
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Entradas do Sistema</h2>
-          <p class="text-muted small mb-2">Mostra as entradas ao longo do tempo quando uma simulação for executada.</p>
           <canvas id="chartEntradas" height="140"></canvas>
         </div>
       </div>
@@ -799,12 +990,12 @@
       <div class="card shadow-sm">
         <div class="card-body">
           <h2 class="h5">Ações de Controle & Desacoplador</h2>
-          <p class="text-muted small mb-2">Gráfico atualizado durante a simulação — execute 'Iniciar' para ver ações de controle.</p>
           <canvas id="chartControles" height="140"></canvas>
         </div>
       </div>
     </div>
   </div>
+</section>
 </main>
 
 <!-- Toast -->
@@ -872,19 +1063,22 @@
 <footer class="ufsc-footer">
   <div class="container-fluid main-container ufsc-footer-inner">
     <div class="left">
-      <div class="logo">UFSC</div>
-      <div class="name">Universidade Federal de Santa Catarina</div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="logo">UFSC</div>
+        <div class="name">Universidade Federal de Santa Catarina</div>
+      </div>
+      <div class="subname">INCT CAPE - Instituto Nacional de Ciência e Tecnologia de Controle e Automação de Processos de Energia</div>
       <div class="dept">Engenharia de Controle e Automação — Simulação de Sistemas Térmicos</div>
     </div>
     <div class="right">
-      <div>© 2025 UFSC — Uso acadêmico</div>
-      <div>Desenvolvido por <b>Emanuele</b></div>
+      <div>© 2026 UFSC — Uso acadêmico</div>
     </div>
   </div>
   <div class="bar"></div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js" crossorigin="anonymous"></script>
 <script src="app.js"></script>
 </body>
 </html>

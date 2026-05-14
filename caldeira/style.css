@@ -25,6 +25,7 @@
 
 body, html {
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 /* ====== NAVBAR ====== */
@@ -72,6 +73,50 @@ body, html {
 
 .ufsc-nav.border-warning { --bs-border-opacity: 1; }
 .ufsc-nav.border-4 { border-bottom-width: .35rem !important; }
+
+.app-shell-header {
+  background: #fff;
+  border-bottom: 1px solid rgba(15, 23, 42, .08);
+}
+
+.app-shell-tabs {
+  gap: 0.5rem;
+}
+
+.app-shell-tab {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: .75rem 1rem;
+  background: rgba(0, 51, 102, .05);
+  color: #0f172a;
+  font-weight: 700;
+  transition: background .2s ease, color .2s ease, border-color .2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.app-shell-tab.active,
+.app-shell-tab:hover {
+  background: #0d6efd;
+  color: #fff;
+  border-color: #0d6efd;
+}
+
+.app-shell-actions .btn {
+  min-width: 96px;
+  border-radius: 999px;
+}
+
+@media (max-width: 767.98px) {
+  .app-shell-header .main-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .app-shell-actions {
+    justify-content: flex-start;
+  }
+}
 
 .navbar .nav-link { padding: .5rem .75rem; }
 @media (max-width: 991.98px) {
